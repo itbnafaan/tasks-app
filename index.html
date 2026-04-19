@@ -1,0 +1,3846 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#1a3a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="إدارة الموظفين">
+<title>نظام إدارة الموظفين - مدرسة عثمان بن عفان الابتدائية</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #1a3a5c;
+  --primary-light: #244d7a;
+  --accent: #c8a96e;
+  --accent-light: #e0c99a;
+  --success: #27ae60;
+  --warning: #e67e22;
+  --danger: #c0392b;
+  --info: #2980b9;
+  --bg: #f0f4f8;
+  --bg-card: #ffffff;
+  --text: #1a2a3a;
+  --text-muted: #6b7c93;
+  --border: #d1dce8;
+  --shadow: 0 4px 20px rgba(26,58,92,0.10);
+  --shadow-lg: 0 8px 40px rgba(26,58,92,0.18);
+  --radius: 14px;
+  --transition: 0.25s cubic-bezier(.4,0,.2,1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Tajawal', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  direction: rtl;
+}
+
+/* ===== HEADER ===== */
+.app-header {
+  background: linear-gradient(135deg, var(--primary) 0%, #0d2440 100%);
+  color: #fff;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  gap: 16px;
+}
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.header-logo .logo-icon {
+  width: 52px; height: 52px;
+  background: var(--accent);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 2px 12px rgba(200,169,110,0.4);
+}
+.header-logo h1 {
+  font-family: 'Cairo', sans-serif;
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.header-logo p {
+  font-size: 0.8rem;
+  color: var(--accent-light);
+  margin-top: 1px;
+}
+.header-stats {
+  display: flex;
+  gap: 20px;
+}
+.hstat {
+  text-align: center;
+  background: rgba(255,255,255,0.07);
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.hstat-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+.hstat-lbl {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.7);
+  margin-top: 2px;
+}
+
+/* ===== NAV ===== */
+.nav-bar {
+  background: var(--primary-light);
+  padding: 0 28px;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+.nav-bar::-webkit-scrollbar {
+  height: 3px;
+}
+.nav-bar::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 2px;
+}
+.nav-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.72);
+  padding: 13px 22px;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.nav-btn:hover { color: #fff; background: rgba(255,255,255,0.07); }
+.nav-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: rgba(200,169,110,0.08);
+  font-weight: 700;
+}
+
+/* ===== MAIN ===== */
+.main-content { padding: 28px; max-width: 1400px; margin: 0 auto; }
+
+/* ===== SECTIONS ===== */
+.section { display: none; }
+.section.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+/* ===== PAGE TITLE ===== */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.page-title {
+  font-family: 'Cairo', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.page-title .icon { color: var(--accent); }
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  border: 1px solid var(--border);
+}
+
+/* ===== GRID ===== */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+
+@media(max-width:900px) {
+  .grid-4 { grid-template-columns: repeat(2,1fr); }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+@media(max-width:600px) {
+  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .header-stats { display: none; }
+  .main-content { padding: 12px 10px; }
+  
+  /* HEADER mobile */
+  .header-inner { padding: 10px 14px; flex-wrap: wrap; }
+  .header-logo .logo-icon { width: 42px; height: 42px; font-size: 22px; border-radius: 10px; }
+  .header-logo h1 { font-size: 1rem; line-height: 1.2; }
+  .header-logo p { font-size: 0.72rem; }
+  
+  /* NAV mobile - scrollable horizontal */
+  .nav-bar { padding: 0 8px; gap: 0; }
+  .nav-btn {
+    padding: 11px 14px;
+    font-size: 0.82rem;
+    min-width: auto;
+  }
+  
+  /* PAGE HEADER */
+  .page-header { flex-direction: column; align-items: stretch; }
+  .page-title { font-size: 1.2rem; }
+  .page-header > div:last-child { display: flex; gap: 6px; flex-wrap: wrap; }
+  
+  /* CARDS */
+  .card { padding: 16px; border-radius: 12px; }
+  
+  /* STAT CARDS */
+  .stat-card { padding: 14px; gap: 12px; }
+  .stat-icon { width: 46px; height: 46px; font-size: 20px; border-radius: 10px; }
+  .stat-info .val { font-size: 1.5rem; }
+  .stat-info .lbl { font-size: 0.76rem; }
+  
+  /* BUTTONS - bigger tap targets */
+  .btn {
+    padding: 10px 16px;
+    font-size: 0.88rem;
+    min-height: 40px;
+  }
+  .btn-sm { padding: 8px 12px; font-size: 0.78rem; min-height: 34px; }
+  .btn-icon { width: 38px; height: 38px; min-height: 38px; padding: 6px; }
+  
+  /* FORMS - better mobile inputs */
+  .form-control {
+    font-size: 16px; /* prevents iOS zoom */
+    padding: 11px 12px;
+  }
+  
+  /* MODAL mobile */
+  .modal-overlay { padding: 10px; align-items: flex-start; padding-top: 30px; }
+  .modal { padding: 20px 18px; max-height: 95vh; border-radius: 14px; }
+  .modal-title { font-size: 1.05rem; }
+  
+  /* TOOLBAR */
+  .toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .toolbar .search-box { width: 100%; min-width: 0; }
+  .toolbar select, .toolbar button { width: 100% !important; }
+  .toolbar > div:last-child { display: flex; gap: 6px; }
+  .toolbar > div:last-child .btn-sm { flex: 1; }
+  
+  /* TABLE - horizontal scroll indicator */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+    box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.1);
+  }
+  table { font-size: 0.82rem; min-width: 600px; }
+  thead th { padding: 10px 10px; font-size: 0.78rem; }
+  tbody td { padding: 9px 10px; }
+  
+  /* BADGE */
+  .badge { font-size: 0.72rem; padding: 2px 8px; }
+  
+  /* EMPLOYEE CARD */
+  .emp-card { padding: 16px; }
+  .emp-avatar { width: 56px; height: 56px; font-size: 1.2rem; }
+  .emp-name { font-size: 0.95rem; }
+  .emp-role { font-size: 0.76rem; }
+  .emp-actions { flex-wrap: wrap; gap: 5px; }
+  .emp-actions .btn { padding: 7px 10px; font-size: 0.76rem; min-height: 32px; }
+  
+  /* TASK CARD */
+  .task-card { padding: 12px 14px; }
+  .task-title { font-size: 0.92rem; }
+  
+  /* ACHIEVEMENT CARD */
+  .achieve-card { padding: 16px 14px; }
+  .achieve-icon { font-size: 2rem; }
+  .achieve-title { font-size: 0.88rem; }
+  
+  /* ACTIVITY */
+  .activity-item { padding: 10px 0; gap: 10px; }
+  .activity-dot { width: 34px; height: 34px; font-size: 0.9rem; }
+  .activity-text { font-size: 0.82rem; }
+  
+  /* FILE UPLOAD */
+  .file-upload-area { padding: 28px 14px; }
+  .file-upload-area .upload-icon { font-size: 2rem; }
+  .file-upload-area p { font-size: 0.82rem; }
+  .file-item { padding: 10px 12px; gap: 10px; flex-wrap: wrap; }
+  .file-icon { width: 36px; height: 36px; font-size: 1rem; }
+  .file-name { font-size: 0.84rem; }
+  .file-meta { font-size: 0.72rem; }
+  .file-item > div:last-child { margin-right: auto; }
+  
+  /* TABS */
+  .tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+  .tab-btn {
+    padding: 9px 14px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  /* REPORT HEADER */
+  .report-header { padding: 20px 16px; }
+  .report-header h2 { font-size: 1.25rem; }
+  
+  /* TIMELINE */
+  .timeline { padding-right: 18px; }
+  .timeline-group-header { flex-wrap: wrap; gap: 6px; }
+  .timeline-date { font-size: 0.85rem; }
+  .timeline-item-header { flex-direction: column; gap: 4px; }
+  
+  /* TOAST */
+  .toast-container { left: 10px; right: 10px; bottom: 14px; }
+  .toast { max-width: none; font-size: 0.85rem; }
+  
+  /* SYNC SECTION */
+  .grid-2 .card { padding: 16px; }
+  
+  /* REORDER */
+  .reorder-banner { padding: 10px 14px; font-size: 0.82rem; }
+  .reorder-mode .emp-card > div:last-child { flex-wrap: wrap; }
+  
+  /* MODAL - chips/dept selector */
+  #emp-depts-container { padding: 8px !important; }
+  #emp-depts-selected span { font-size: 0.76rem !important; padding: 4px 10px !important; }
+}
+
+/* Extra small devices (phones < 380px) */
+@media(max-width:380px) {
+  .header-logo h1 { font-size: 0.9rem; }
+  .nav-btn { padding: 10px 10px; font-size: 0.78rem; }
+  .page-title { font-size: 1.1rem; }
+  .btn { padding: 9px 12px; font-size: 0.84rem; }
+  .stat-info .val { font-size: 1.3rem; }
+  .modal { padding: 16px 14px; }
+  .form-control { padding: 10px; }
+  .emp-card { padding: 14px; }
+}
+
+/* ===== STAT CARDS ===== */
+.stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: var(--transition);
+}
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.stat-icon {
+  width: 58px; height: 58px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+.stat-info .val {
+  font-size: 2rem;
+  font-weight: 900;
+  font-family: 'Cairo', sans-serif;
+  line-height: 1;
+  color: var(--primary);
+}
+.stat-info .lbl {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26,58,92,0.3); }
+.btn-accent { background: var(--accent); color: #1a2a3a; }
+.btn-accent:hover { background: var(--accent-light); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #219a52; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #a93226; }
+.btn-info { background: var(--info); color: #fff; }
+.btn-info:hover { background: #2471a3; }
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+}
+.btn-outline:hover { background: var(--primary); color: #fff; }
+.btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+.btn-icon { padding: 8px; width: 36px; height: 36px; border-radius: 8px; justify-content: center; }
+
+/* ===== FORM ===== */
+.form-group { margin-bottom: 18px; }
+.form-group label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 7px;
+}
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: #f7fafc;
+  transition: var(--transition);
+  direction: rtl;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(26,58,92,0.1);
+}
+select.form-control { cursor: pointer; }
+textarea.form-control { resize: vertical; min-height: 90px; }
+
+/* ===== TABLE ===== */
+.table-wrap { overflow-x: auto; border-radius: 12px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+thead tr { background: var(--primary); color: #fff; }
+thead th {
+  padding: 13px 14px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: var(--transition);
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #f0f4f8; }
+tbody td { padding: 11px 14px; vertical-align: middle; }
+.td-actions { display: flex; gap: 6px; justify-content: center; }
+
+/* ===== BADGE ===== */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.badge-success { background: #d5f5e3; color: #1e8449; }
+.badge-warning { background: #fdebd0; color: #a04000; }
+.badge-danger { background: #fadbd8; color: #922b21; }
+.badge-info { background: #d6eaf8; color: #1a5276; }
+.badge-primary { background: #d6e4f0; color: #1a3a5c; }
+.badge-accent { background: #fdf3e3; color: #784212; }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,20,40,0.6);
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #fff;
+  border-radius: 18px;
+  padding: 30px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: modalIn .25s ease;
+}
+@keyframes modalIn { from { transform:scale(.95); opacity:0; } to { transform:scale(1); opacity:1; } }
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border);
+}
+.modal-title {
+  font-family: 'Cairo', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.modal-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 1.4rem; color: var(--text-muted);
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.modal-close:hover { background: #fadbd8; color: var(--danger); }
+
+/* ===== EMPLOYEE CARD ===== */
+.emp-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.emp-card::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+.emp-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.emp-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 auto 12px;
+  font-family: 'Cairo', sans-serif;
+}
+.emp-name {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--primary);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.emp-role {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 12px;
+}
+.emp-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.emp-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar {
+  background: var(--border);
+  border-radius: 20px;
+  height: 8px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width .6s ease;
+}
+
+/* ===== TASK CARD ===== */
+.task-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  border-right: 4px solid transparent;
+  margin-bottom: 12px;
+  transition: var(--transition);
+}
+.task-card:hover { transform: translateX(-3px); }
+.task-card.priority-high { border-right-color: var(--danger); }
+.task-card.priority-medium { border-right-color: var(--warning); }
+.task-card.priority-low { border-right-color: var(--success); }
+.task-card.status-completed { opacity: 0.7; }
+.task-title { font-weight: 600; margin-bottom: 6px; }
+.task-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.task-assign {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ===== ACHIEVEMENT ===== */
+.achieve-card {
+  background: linear-gradient(135deg, var(--primary), #0d2440);
+  color: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.achieve-card::after {
+  content: '🏆';
+  position: absolute;
+  top: -10px; left: -10px;
+  font-size: 80px;
+  opacity: 0.07;
+}
+.achieve-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.achieve-title { font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+.achieve-sub { font-size: 0.78rem; opacity: 0.7; }
+.achieve-date { font-size: 0.75rem; opacity: 0.6; margin-top: 8px; }
+
+/* ===== SEARCH / FILTER ===== */
+.toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  align-items: center;
+}
+.search-box {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+.search-box .form-control { padding-right: 42px; background: #fff; }
+.search-box .search-icon {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+/* ===== FILE UPLOAD ===== */
+.file-upload-area {
+  border: 2.5px dashed var(--border);
+  border-radius: 14px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  background: #f7fafc;
+}
+.file-upload-area:hover, .file-upload-area.dragging {
+  border-color: var(--primary);
+  background: #eaf0f7;
+}
+.file-upload-area .upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.file-upload-area p { color: var(--text-muted); font-size: 0.9rem; }
+.file-upload-area strong { color: var(--primary); }
+
+.file-list { margin-top: 20px; }
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  transition: var(--transition);
+}
+.file-item:hover { box-shadow: var(--shadow); }
+.file-icon {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.file-info { flex: 1; }
+.file-name { font-weight: 600; font-size: 0.9rem; color: var(--primary); }
+.file-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ===== DASHBOARD ===== */
+.activity-list { }
+.activity-item {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.activity-text { font-size: 0.88rem; }
+.activity-time { font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; }
+
+/* ===== PRINT ===== */
+@media print {
+  .app-header, .nav-bar, .toolbar, .btn, .modal-overlay, .no-print { display: none !important; }
+  body { background: #fff; }
+  .main-content { padding: 0; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+  table { font-size: 11px; }
+  .section { display: block !important; }
+  .section:not(.active) { display: none !important; }
+}
+
+/* ===== TOAST ===== */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast {
+  background: var(--primary);
+  color: #fff;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn .3s ease;
+  max-width: 320px;
+}
+@keyframes slideIn { from { transform:translateX(-100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+.toast.success { background: var(--success); }
+.toast.danger { background: var(--danger); }
+.toast.warning { background: var(--warning); }
+
+/* ===== TABS ===== */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 22px; }
+.tab-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 10px 20px;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: var(--transition);
+}
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+.tab-btn:hover { color: var(--primary); }
+
+/* ===== REPORT ===== */
+.report-header {
+  text-align: center;
+  padding: 30px;
+  background: linear-gradient(135deg, var(--primary), #0d2440);
+  color: #fff;
+  border-radius: 14px;
+  margin-bottom: 24px;
+}
+.report-header h2 { font-family: 'Cairo', sans-serif; font-size: 1.6rem; font-weight: 900; margin-bottom: 6px; }
+.report-header p { opacity: 0.8; font-size: 0.9rem; }
+
+/* ===== PERF METER ===== */
+.perf-ring {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: conic-gradient(var(--success) var(--pct, 0%), var(--border) 0%);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 10px;
+  position: relative;
+}
+.perf-ring::after {
+  content: '';
+  width: 68px; height: 68px;
+  background: var(--bg-card);
+  border-radius: 50%;
+  position: absolute;
+}
+.perf-ring .perf-num {
+  position: relative;
+  z-index: 1;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+/* ===== ATTENDANCE ===== */
+.att-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 8px;
+  min-width: 44px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+}
+.att-day .day-label { color: var(--text-muted); font-size: 0.72rem; }
+.att-day.present { background: #d5f5e3; border-color: var(--success); }
+.att-day.absent { background: #fadbd8; border-color: var(--danger); }
+.att-day.late { background: #fdebd0; border-color: var(--warning); }
+.att-days-grid { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+/* ===== REORDER MODE ===== */
+.reorder-mode .emp-card,
+.reorder-mode tbody tr {
+  cursor: move;
+  position: relative;
+}
+.reorder-mode .emp-card::before {
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 10px, var(--primary) 10px 20px);
+  animation: reorder-stripes 1.5s linear infinite;
+}
+@keyframes reorder-stripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+.reorder-mode .emp-card.dragging,
+.reorder-mode tbody tr.dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+}
+.reorder-mode .emp-card.drag-over,
+.reorder-mode tbody tr.drag-over {
+  border-top: 3px solid var(--accent);
+}
+.reorder-handle {
+  display: none;
+  width: 30px;
+  height: 30px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.reorder-handle:active { cursor: grabbing; }
+.reorder-mode .reorder-handle { display: inline-flex; }
+.reorder-arrows {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+.reorder-arrows button {
+  width: 28px;
+  height: 20px;
+  padding: 0;
+  font-size: .75rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.reorder-arrows button:hover { background: var(--primary-light); }
+.reorder-arrows button:disabled { opacity: 0.3; cursor: not-allowed; }
+.reorder-mode .reorder-arrows { display: flex; }
+.reorder-mode .emp-actions > .btn:not(.reorder-handle),
+.reorder-mode .td-actions > .btn:not(.reorder-handle) {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.reorder-banner {
+  background: linear-gradient(135deg, var(--accent), #b8934e);
+  color: #1a2a3a;
+  padding: 12px 18px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-weight: 600;
+  font-size: .9rem;
+  animation: slideIn .3s ease;
+  box-shadow: var(--shadow);
+}
+#reorder-toggle-btn.active {
+  background: var(--danger);
+  color: #fff;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(192,57,43,0); }
+}
+
+.timeline {
+  position: relative;
+  padding-right: 24px;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--primary), var(--accent));
+  border-radius: 2px;
+}
+.timeline-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+.timeline-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  position: relative;
+}
+.timeline-group-header::before {
+  content: '';
+  position: absolute;
+  right: -22px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  background: var(--primary);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--primary);
+  z-index: 1;
+}
+.timeline-date {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 0.95rem;
+}
+.timeline-date-badge {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+.timeline-item {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  position: relative;
+  transition: var(--transition);
+  border-right: 4px solid var(--info);
+}
+.timeline-item:hover { box-shadow: var(--shadow); transform: translateX(-3px); }
+.timeline-item.priority-high { border-right-color: var(--danger); }
+.timeline-item.priority-medium { border-right-color: var(--warning); }
+.timeline-item.priority-low { border-right-color: var(--success); }
+.timeline-item.overdue { background: #fef5f4; }
+.timeline-item.completed { opacity: 0.6; background: #f0f7f2; }
+.timeline-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.timeline-item-title {
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 0.92rem;
+}
+.timeline-item-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.timeline-filter.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+@media(max-width:600px){
+  .timeline { padding-right: 18px; }
+  .timeline-group-header::before { right: -16px; width: 14px; height: 14px; }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+.empty-state .empty-icon { font-size: 3.5rem; margin-bottom: 14px; opacity: 0.5; }
+.empty-state h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; }
+.empty-state p { font-size: 0.88rem; }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="app-header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <div class="logo-icon">🏫</div>
+      <div>
+        <h1>نظام إدارة الموظفين والمهام</h1>
+        <p>مدرسة عثمان بن عفان الابتدائية</p>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="hstat">
+        <div class="hstat-val" id="h-emp-count">0</div>
+        <div class="hstat-lbl">موظف</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="h-task-count">0</div>
+        <div class="hstat-lbl">مهمة</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="h-achieve-count">0</div>
+        <div class="hstat-lbl">إنجاز</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-bar">
+    <button class="nav-btn active" onclick="showSection('dashboard')">🏠 الرئيسية</button>
+    <button class="nav-btn" onclick="showSection('employees')">👥 الموظفون</button>
+    <button class="nav-btn" onclick="showSection('tasks')">📋 المهام</button>
+    <button class="nav-btn" onclick="showSection('achievements')">🏆 الإنجازات</button>
+    <button class="nav-btn" onclick="showSection('files')">📁 الملفات</button>
+    <button class="nav-btn" onclick="showSection('reports')">📊 التقارير</button>
+    <button class="nav-btn" onclick="showSection('sync')">🔄 المزامنة</button>
+  </div>
+</div>
+
+<div class="main-content">
+
+<!-- ===== DASHBOARD ===== -->
+<div id="sec-dashboard" class="section active">
+  <div class="page-header">
+    <div class="page-title"><span class="icon">🏠</span> لوحة التحكم</div>
+    <div style="font-size:.85rem;color:var(--text-muted);" id="dash-date"></div>
+  </div>
+
+  <div class="grid-4" style="margin-bottom:24px">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#e8f0f7">👥</div>
+      <div class="stat-info">
+        <div class="val" id="dash-emp">0</div>
+        <div class="lbl">إجمالي الموظفين</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fdf3e3">📋</div>
+      <div class="stat-info">
+        <div class="val" id="dash-tasks">0</div>
+        <div class="lbl">مهام نشطة</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#d5f5e3">✅</div>
+      <div class="stat-info">
+        <div class="val" id="dash-done">0</div>
+        <div class="lbl">مهام منجزة</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fadbd8">⚠️</div>
+      <div class="stat-info">
+        <div class="val" id="dash-late-tasks">0</div>
+        <div class="lbl">مهام متأخرة</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div style="font-weight:700;font-size:1rem;color:var(--primary);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        🕐 آخر النشاطات
+      </div>
+      <div class="activity-list" id="activity-list">
+        <div class="empty-state"><div class="empty-icon">📭</div><p>لا توجد نشاطات بعد</p></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:1rem;color:var(--primary);margin-bottom:16px">
+        ⚡ مهام عاجلة
+      </div>
+      <div id="urgent-tasks">
+        <div class="empty-state"><div class="empty-icon">✅</div><p>لا توجد مهام عاجلة</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:22px" class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="font-weight:700;font-size:1rem;color:var(--primary);display:flex;align-items:center;gap:8px">
+        📅 الخط الزمني للمهام
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-sm timeline-filter active" data-tf="all" onclick="filterTimeline('all')">الكل</button>
+        <button class="btn btn-outline btn-sm timeline-filter" data-tf="today" onclick="filterTimeline('today')">اليوم</button>
+        <button class="btn btn-outline btn-sm timeline-filter" data-tf="week" onclick="filterTimeline('week')">هذا الأسبوع</button>
+        <button class="btn btn-outline btn-sm timeline-filter" data-tf="overdue" onclick="filterTimeline('overdue')">متأخرة</button>
+        <button class="btn btn-outline btn-sm timeline-filter" data-tf="upcoming" onclick="filterTimeline('upcoming')">قادمة</button>
+      </div>
+    </div>
+    <div id="timeline-container"></div>
+  </div>
+
+  <div style="margin-top:22px" class="card">
+    <div style="font-weight:700;font-size:1rem;color:var(--primary);margin-bottom:16px">📈 أداء الفريق</div>
+    <div id="team-perf-grid" class="grid-4"></div>
+  </div>
+</div>
+
+<!-- ===== EMPLOYEES ===== -->
+<div id="sec-employees" class="section">
+  <div class="page-header">
+    <div class="page-title"><span class="icon">👥</span> إدارة الموظفين</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-accent" onclick="importStaff()" title="استيراد قائمة الموظفين الافتراضية">📥 استيراد الموظفين</button>
+      <button class="btn btn-primary" onclick="openEmpModal()">➕ إضافة موظف</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input class="form-control" id="emp-search" placeholder="البحث عن موظف..." oninput="renderEmployees()">
+    </div>
+    <select class="form-control" style="width:200px" id="emp-filter-dept" onchange="renderEmployees()">
+      <option value="">كل الأقسام</option>
+    </select>
+    <button class="btn btn-outline btn-sm" onclick="openDeptModal()" title="إدارة الأقسام">🏢 إدارة الأقسام</button>
+    <select class="form-control" style="width:140px" id="emp-filter-status" onchange="renderEmployees()">
+      <option value="">كل الحالات</option>
+      <option value="active">نشط</option>
+      <option value="leave">إجازة</option>
+      <option value="inactive">غير نشط</option>
+    </select>
+    <select class="form-control" style="width:150px" id="emp-sort" onchange="renderEmployees()">
+      <option value="custom">ترتيب مخصص</option>
+      <option value="name">حسب الاسم</option>
+      <option value="dept">حسب القسم</option>
+      <option value="hireDate">حسب تاريخ التعيين</option>
+      <option value="status">حسب الحالة</option>
+    </select>
+    <button class="btn btn-accent btn-sm" id="reorder-toggle-btn" onclick="toggleReorderMode()" title="تفعيل وضع إعادة الترتيب">🔀 ترتيب</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-outline btn-sm" onclick="setEmpView('card')">⊞</button>
+      <button class="btn btn-outline btn-sm" onclick="setEmpView('table')">☰</button>
+    </div>
+  </div>
+
+  <div id="reorder-banner-container"></div>
+
+  <div id="emp-card-view">
+    <div id="emp-cards" class="grid-3"></div>
+  </div>
+  <div id="emp-table-view" style="display:none">
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الاسم</th>
+              <th>القسم</th>
+              <th>المسمى الوظيفي</th>
+              <th>الهاتف</th>
+              <th>الحالة</th>
+              <th>تاريخ التعيين</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="emp-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TASKS ===== -->
+<div id="sec-tasks" class="section">
+  <div class="page-header">
+    <div class="page-title"><span class="icon">📋</span> إدارة المهام</div>
+    <button class="btn btn-primary" onclick="openTaskModal()">➕ إضافة مهمة</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input class="form-control" id="task-search" placeholder="البحث في المهام..." oninput="renderTasks()">
+    </div>
+    <select class="form-control" style="width:140px" id="task-filter-status" onchange="renderTasks()">
+      <option value="">كل الحالات</option>
+      <option value="pending">معلقة</option>
+      <option value="inprogress">جارية</option>
+      <option value="completed">منجزة</option>
+      <option value="cancelled">ملغاة</option>
+    </select>
+    <select class="form-control" style="width:140px" id="task-filter-priority" onchange="renderTasks()">
+      <option value="">كل الأولويات</option>
+      <option value="high">عالية</option>
+      <option value="medium">متوسطة</option>
+      <option value="low">منخفضة</option>
+    </select>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div style="font-weight:700;color:var(--primary);margin-bottom:12px;font-size:.9rem">🔴 عالية الأولوية</div>
+      <div id="tasks-high"></div>
+    </div>
+    <div>
+      <div style="font-weight:700;color:var(--primary);margin-bottom:12px;font-size:.9rem">🟡 متوسطة / 🟢 منخفضة</div>
+      <div id="tasks-other"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ACHIEVEMENTS ===== -->
+<div id="sec-achievements" class="section">
+  <div class="page-header">
+    <div class="page-title"><span class="icon">🏆</span> الإنجازات والتقدير</div>
+    <button class="btn btn-accent" onclick="openAchieveModal()">🏅 إضافة إنجاز</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input class="form-control" id="achieve-search" placeholder="البحث في الإنجازات..." oninput="renderAchievements()">
+    </div>
+    <select class="form-control" style="width:160px" id="achieve-filter-emp" onchange="renderAchievements()">
+      <option value="">كل الموظفين</option>
+    </select>
+    <select class="form-control" style="width:140px" id="achieve-filter-type" onchange="renderAchievements()">
+      <option value="">كل الأنواع</option>
+      <option value="excellence">تميز وظيفي</option>
+      <option value="innovation">ابتكار وإبداع</option>
+      <option value="teamwork">روح الفريق</option>
+      <option value="punctuality">الالتزام والانضباط</option>
+      <option value="project">إنجاز مشروع</option>
+      <option value="other">أخرى</option>
+    </select>
+  </div>
+
+  <div id="achieve-grid" class="grid-4"></div>
+</div>
+
+<!-- ===== FILES ===== -->
+<div id="sec-files" class="section">
+  <div class="page-header">
+    <div class="page-title"><span class="icon">📁</span> إدارة الملفات والوثائق</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div style="font-weight:700;color:var(--primary);margin-bottom:16px">📤 رفع ملف جديد</div>
+      <div class="file-upload-area" onclick="document.getElementById('file-input').click()" id="drop-zone">
+        <div class="upload-icon">📁</div>
+        <p><strong>اضغط لرفع الملف</strong> أو اسحب وأفلت هنا</p>
+        <p style="margin-top:6px;font-size:.8rem">يدعم جميع أنواع الملفات</p>
+      </div>
+      <input type="file" id="file-input" style="display:none" multiple onchange="handleFileUpload(this.files)">
+
+      <div style="margin-top:20px" class="form-group">
+        <label>تصنيف الملف</label>
+        <select class="form-control" id="file-category">
+          <option>وثائق إدارية</option>
+          <option>تقارير</option>
+          <option>صور</option>
+          <option>عقود</option>
+          <option>محاضر</option>
+          <option>أخرى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ملاحظة</label>
+        <input class="form-control" id="file-note" placeholder="وصف اختياري للملف...">
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:700;color:var(--primary);margin-bottom:16px">📂 الملفات المحفوظة</div>
+      <div class="toolbar" style="margin-bottom:14px">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input class="form-control" id="file-search" placeholder="البحث في الملفات..." oninput="renderFiles()">
+        </div>
+        <select class="form-control" style="width:150px" id="file-filter" onchange="renderFiles()">
+          <option value="">كل التصنيفات</option>
+          <option>وثائق إدارية</option>
+          <option>تقارير</option>
+          <option>صور</option>
+          <option>عقود</option>
+          <option>محاضر</option>
+          <option>أخرى</option>
+        </select>
+      </div>
+      <div id="file-list" class="file-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REPORTS ===== -->
+<div id="sec-reports" class="section">
+  <div class="page-header">
+    <div class="page-title"><span class="icon">📊</span> التقارير</div>
+    <button class="btn btn-primary no-print" onclick="printReport()">🖨️ طباعة التقرير</button>
+  </div>
+
+  <div class="tabs no-print">
+    <button class="tab-btn active" onclick="showReportTab('emp-report')">تقرير الموظفين</button>
+    <button class="tab-btn" onclick="showReportTab('task-report')">تقرير المهام</button>
+    <button class="tab-btn" onclick="showReportTab('achieve-report')">تقرير الإنجازات</button>
+  </div>
+
+  <div id="emp-report">
+    <div class="report-header">
+      <h2>📋 تقرير الموظفين</h2>
+      <p id="report-school-info">مدرسة عثمان بن عفان الابتدائية</p>
+      <p id="report-date-emp" style="margin-top:4px;opacity:.7"></p>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>الاسم</th><th>القسم</th><th>المسمى الوظيفي</th>
+              <th>الهاتف</th><th>الحالة</th><th>تاريخ التعيين</th>
+              <th>المهام</th><th>الإنجازات</th>
+            </tr>
+          </thead>
+          <tbody id="emp-report-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="task-report" style="display:none">
+    <div class="no-print" style="margin-bottom:16px">
+      <div class="card">
+        <div style="font-weight:700;color:var(--primary);margin-bottom:12px;font-size:.95rem">🔍 فلترة التقرير حسب تاريخ الاستحقاق</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:140px">
+            <label style="display:block;font-size:.82rem;color:var(--primary);margin-bottom:4px;font-weight:600">الفترة</label>
+            <select class="form-control" id="task-report-period" onchange="setTaskReportPeriod()">
+              <option value="all">جميع الفترات</option>
+              <option value="today">اليوم</option>
+              <option value="week">هذا الأسبوع</option>
+              <option value="month">هذا الشهر</option>
+              <option value="quarter">الربع الحالي</option>
+              <option value="year">هذا العام</option>
+              <option value="custom">فترة مخصصة</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:140px">
+            <label style="display:block;font-size:.82rem;color:var(--primary);margin-bottom:4px;font-weight:600">من تاريخ</label>
+            <input type="date" class="form-control" id="task-report-from" onchange="renderReports()">
+          </div>
+          <div style="flex:1;min-width:140px">
+            <label style="display:block;font-size:.82rem;color:var(--primary);margin-bottom:4px;font-weight:600">إلى تاريخ</label>
+            <input type="date" class="form-control" id="task-report-to" onchange="renderReports()">
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="clearTaskReportDates()">🗑️ مسح</button>
+        </div>
+      </div>
+    </div>
+    <div class="report-header">
+      <h2>📋 تقرير المهام</h2>
+      <p>مدرسة عثمان بن عفان الابتدائية</p>
+      <p id="report-date-task" style="margin-top:4px;opacity:.7"></p>
+      <p id="task-report-range" style="margin-top:4px;font-size:.9rem;font-weight:600"></p>
+    </div>
+    <div class="grid-4" style="margin-bottom:20px" id="task-report-stats"></div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>عنوان المهمة</th><th>المكلف</th><th>الأولوية</th><th>الحالة</th><th>تاريخ الاستحقاق</th><th>ملاحظات</th></tr>
+          </thead>
+          <tbody id="task-report-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="achieve-report" style="display:none">
+    <div class="no-print" style="margin-bottom:16px">
+      <div class="card">
+        <div style="font-weight:700;color:var(--primary);margin-bottom:12px;font-size:.95rem">🔍 فلترة التقرير حسب تاريخ الإنجاز</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:140px">
+            <label style="display:block;font-size:.82rem;color:var(--primary);margin-bottom:4px;font-weight:600">الفترة</label>
+            <select class="form-control" id="achieve-report-period" onchange="setAchieveReportPeriod()">
+              <option value="all">جميع الفترات</option>
+              <option value="today">اليوم</option>
+              <option value="week">هذا الأسبوع</option>
+              <option value="month">هذا الشهر</option>
+              <option value="quarter">الربع الحالي</option>
+              <option value="year">هذا العام</option>
+              <option value="custom">فترة مخصصة</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:140px">
+            <label style="display:block;font-size:.82rem;color:var(--primary);margin-bottom:4px;font-weight:600">من تاريخ</label>
+            <input type="date" class="form-control" id="achieve-report-from" onchange="renderReports()">
+          </div>
+          <div style="flex:1;min-width:140px">
+            <label style="display:block;font-size:.82rem;color:var(--primary);margin-bottom:4px;font-weight:600">إلى تاريخ</label>
+            <input type="date" class="form-control" id="achieve-report-to" onchange="renderReports()">
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="clearAchieveReportDates()">🗑️ مسح</button>
+        </div>
+      </div>
+    </div>
+    <div class="report-header">
+      <h2>🏆 تقرير الإنجازات</h2>
+      <p>مدرسة عثمان بن عفان الابتدائية</p>
+      <p id="report-date-achieve" style="margin-top:4px;opacity:.7"></p>
+      <p id="achieve-report-range" style="margin-top:4px;font-size:.9rem;font-weight:600"></p>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>الموظف</th><th>الإنجاز</th><th>النوع</th><th>التاريخ</th><th>الوصف</th></tr>
+          </thead>
+          <tbody id="achieve-report-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="att-report" style="display:none"></div>
+
+  <div style="margin-top:16px;text-align:center;font-size:.8rem;color:var(--text-muted)">
+    تصميم وإعداد الخدمات الإلكترونية - عبدالله العتيبي
+  </div>
+</div>
+
+<!-- ===== SYNC ===== -->
+<div id="sec-sync" class="section">
+  <div class="page-header">
+    <div class="page-title"><span class="icon">🔄</span> المزامنة بين الأجهزة</div>
+  </div>
+
+  <!-- Current Data Summary -->
+  <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,#1a3a5c,#0d2440);color:#fff">
+    <div style="font-weight:700;font-size:1rem;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+      💾 ملخص البيانات الحالية على هذا الجهاز
+    </div>
+    <div class="grid-4" id="sync-summary"></div>
+    <div style="margin-top:14px;font-size:.85rem;opacity:.8;text-align:center" id="sync-last-export">
+      لم يتم التصدير بعد
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Export -->
+    <div class="card" style="border-top:4px solid var(--success)">
+      <div style="font-weight:700;font-size:1.1rem;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        📤 تصدير النسخة الاحتياطية
+      </div>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:18px;line-height:1.7">
+        اضغط الزر لتنزيل ملف يحتوي على <strong>جميع البيانات</strong> (الموظفين، المهام، الإنجازات، الملفات، الصور). يمكنك رفعه على Google Drive للوصول إليه من أي جهاز.
+      </p>
+      <button class="btn btn-success" style="width:100%;padding:14px" onclick="exportData()">
+        📥 تنزيل ملف النسخة الاحتياطية
+      </button>
+      <div style="margin-top:12px;font-size:.78rem;color:var(--text-muted);background:#f7fafc;padding:10px;border-radius:8px">
+        💡 اسم الملف: <code id="export-filename" style="background:#fff;padding:2px 6px;border-radius:4px">school_backup_YYYY-MM-DD.json</code>
+      </div>
+    </div>
+
+    <!-- Import -->
+    <div class="card" style="border-top:4px solid var(--info)">
+      <div style="font-weight:700;font-size:1.1rem;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        📥 استيراد نسخة احتياطية
+      </div>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:18px;line-height:1.7">
+        ارفع ملف النسخة الاحتياطية (json) من Google Drive. <strong style="color:var(--danger)">تنبيه:</strong> سيتم استبدال البيانات الحالية.
+      </p>
+      <div class="file-upload-area" onclick="document.getElementById('import-file-input').click()" id="import-drop-zone">
+        <div class="upload-icon">📂</div>
+        <p><strong>اضغط لاختيار ملف النسخة</strong></p>
+        <p style="margin-top:4px;font-size:.78rem">أو اسحب ملف json وأفلته هنا</p>
+      </div>
+      <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this.files[0])">
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <input type="checkbox" id="import-merge" style="width:18px;height:18px;cursor:pointer">
+        <label for="import-merge" style="cursor:pointer;font-size:.85rem;color:var(--primary);margin:0">
+          دمج البيانات بدلاً من الاستبدال (تجنب التكرار)
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Drive Workflow -->
+  <div class="card" style="margin-top:20px">
+    <div style="font-weight:700;font-size:1.1rem;color:var(--primary);margin-bottom:18px;display:flex;align-items:center;gap:8px">
+      ☁️ طريقة المزامنة عبر Google Drive
+    </div>
+
+    <div class="grid-2">
+      <div style="background:#f7fafc;padding:20px;border-radius:12px;border-right:4px solid var(--success)">
+        <div style="font-weight:700;color:var(--success);margin-bottom:10px;font-size:.95rem">
+          💻 على الجهاز الأول (الرئيسي)
+        </div>
+        <ol style="padding-right:18px;line-height:2;font-size:.88rem;color:var(--text)">
+          <li>اضغط زر <strong>"تنزيل ملف النسخة الاحتياطية"</strong></li>
+          <li>افتح <strong>drive.google.com</strong> في متصفحك</li>
+          <li>اضغط <strong>"جديد → تحميل ملف"</strong> وارفع الملف</li>
+          <li>كلما عدّلت بيانات، كرر الخطوات (استبدل الملف القديم)</li>
+        </ol>
+      </div>
+
+      <div style="background:#f7fafc;padding:20px;border-radius:12px;border-right:4px solid var(--info)">
+        <div style="font-weight:700;color:var(--info);margin-bottom:10px;font-size:.95rem">
+          📱 على الجهاز الثاني
+        </div>
+        <ol style="padding-right:18px;line-height:2;font-size:.88rem;color:var(--text)">
+          <li>افتح <strong>drive.google.com</strong> بنفس الحساب</li>
+          <li>اضغط على الملف بزر الفأرة الأيمن → <strong>"تنزيل"</strong></li>
+          <li>ارجع لهذا البرنامج → قسم <strong>"المزامنة"</strong></li>
+          <li>اضغط <strong>"اختر ملف النسخة"</strong> واختر الملف المحمّل</li>
+        </ol>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;padding:14px;background:#fdf3e3;border-radius:10px;border-right:4px solid var(--accent)">
+      <div style="font-weight:700;color:#784212;margin-bottom:6px;font-size:.9rem">💡 نصائح مهمة</div>
+      <ul style="padding-right:18px;font-size:.85rem;line-height:1.9;color:var(--text)">
+        <li>احرص على <strong>تصدير النسخة بعد كل تعديل مهم</strong> حفاظاً على البيانات</li>
+        <li>استخدم <strong>اسم ملف ثابت</strong> في Google Drive ليكون الاستبدال سهلاً</li>
+        <li>قبل الاستيراد، يُفضل <strong>تصدير نسخة من الجهاز الحالي أولاً</strong> احتياطاً</li>
+        <li>خيار <strong>"دمج البيانات"</strong> مفيد إذا أضفت موظفين على الجهازين — يحتفظ بهم جميعاً</li>
+        <li>الصور وملفات الموظفين <strong>تُحفظ داخل الملف</strong> فلا تُفقد عند النقل</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Danger Zone -->
+  <div class="card" style="margin-top:20px;border:2px solid #fadbd8;background:#fef5f4">
+    <div style="font-weight:700;font-size:1rem;color:var(--danger);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      ⚠️ منطقة الحذف
+    </div>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">
+      هذا الخيار يمحو جميع البيانات من هذا الجهاز. تأكد من <strong>تصدير نسخة احتياطية أولاً</strong>.
+    </p>
+    <button class="btn btn-danger" onclick="clearAllData()">🗑️ محو جميع البيانات</button>
+  </div>
+</div>
+
+</div><!-- end main-content -->
+
+<!-- ===== MODALS ===== -->
+
+<!-- Department Management Modal -->
+<div class="modal-overlay" id="dept-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🏢 إدارة الأقسام</div>
+      <button class="modal-close" onclick="closeModal('dept-modal')">✕</button>
+    </div>
+    <div style="background:#f7fafc;padding:14px;border-radius:12px;margin-bottom:18px">
+      <label style="display:block;font-weight:600;color:var(--primary);margin-bottom:7px;font-size:.88rem">إضافة قسم جديد</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-control" id="new-dept-name" placeholder="أدخل اسم القسم..." onkeydown="if(event.key==='Enter')addDept()">
+        <button class="btn btn-primary" onclick="addDept()">➕ إضافة</button>
+      </div>
+    </div>
+    <div style="font-weight:700;color:var(--primary);margin-bottom:10px;font-size:.95rem">
+      📋 الأقسام الحالية
+    </div>
+    <div id="dept-list" style="max-height:400px;overflow-y:auto"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+      <button class="btn btn-outline" onclick="closeModal('dept-modal')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- Employee Modal -->
+<div class="modal-overlay" id="emp-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="emp-modal-title">إضافة موظف جديد</div>
+      <button class="modal-close" onclick="closeModal('emp-modal')">✕</button>
+    </div>
+    <div class="form-group" style="text-align:center;padding:16px;background:#f7fafc;border-radius:12px;margin-bottom:20px">
+      <label style="margin-bottom:10px">الصورة الشخصية</label>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div id="emp-photo-preview" style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;font-family:'Cairo',sans-serif;overflow:hidden;background-size:cover;background-position:center">?</div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('emp-photo-input').click()">📷 اختر صورة</button>
+          <button type="button" class="btn btn-danger btn-sm" id="emp-photo-remove" onclick="clearEmpPhoto()" style="display:none">🗑️ إزالة</button>
+        </div>
+        <input type="file" id="emp-photo-input" accept="image/*" capture="user" style="display:none" onchange="handleEmpPhotoSelect(this.files[0])">
+        <p style="font-size:.75rem;color:var(--text-muted);margin:0">يفضل صورة مربعة بحجم صغير</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>الاسم الكامل *</label>
+        <input class="form-control" id="emp-name" placeholder="أدخل الاسم الكامل">
+      </div>
+      <div class="form-group">
+        <label>المسمى الوظيفي *</label>
+        <input class="form-control" id="emp-title" placeholder="مثال: معلم رياضيات">
+      </div>
+      <div class="form-group">
+        <label>الأقسام * <span style="font-weight:400;color:var(--text-muted);font-size:.8rem">(يمكن اختيار أكثر من قسم)</span></label>
+        <div id="emp-depts-container" style="border:1.5px solid var(--border);border-radius:10px;padding:10px;background:#f7fafc;min-height:46px">
+          <div id="emp-depts-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+          <select class="form-control" id="emp-dept-picker" onchange="addEmpDept(this.value);this.value=''" style="border:1px dashed var(--primary);background:#fff"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input class="form-control" id="emp-phone" placeholder="05xxxxxxxx" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>البريد الإلكتروني</label>
+        <input class="form-control" id="emp-email" placeholder="example@edu.sa" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>رقم الهوية / الوظيفي</label>
+        <input class="form-control" id="emp-id" placeholder="رقم الهوية" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>تاريخ التعيين</label>
+        <input type="date" class="form-control" id="emp-hire-date">
+      </div>
+      <div class="form-group">
+        <label>الحالة</label>
+        <select class="form-control" id="emp-status">
+          <option value="active">نشط</option>
+          <option value="leave">إجازة</option>
+          <option value="inactive">غير نشط</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>ملاحظات</label>
+      <textarea class="form-control" id="emp-notes" placeholder="معلومات إضافية..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-outline" onclick="closeModal('emp-modal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="task-modal-title">إضافة مهمة جديدة</div>
+      <button class="modal-close" onclick="closeModal('task-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>عنوان المهمة *</label>
+      <input class="form-control" id="task-title" placeholder="أدخل عنوان المهمة">
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>المكلف بالمهمة *</label>
+        <select class="form-control" id="task-assign">
+          <option value="">-- اختر موظف --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>الأولوية</label>
+        <select class="form-control" id="task-priority">
+          <option value="high">🔴 عالية</option>
+          <option value="medium">🟡 متوسطة</option>
+          <option value="low">🟢 منخفضة</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>الحالة</label>
+        <select class="form-control" id="task-status">
+          <option value="pending">معلقة</option>
+          <option value="inprogress">جارية</option>
+          <option value="completed">منجزة</option>
+          <option value="cancelled">ملغاة</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>تاريخ الاستحقاق</label>
+        <input type="date" class="form-control" id="task-due">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>وصف المهمة</label>
+      <textarea class="form-control" id="task-desc" placeholder="تفاصيل المهمة..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>نسبة الإنجاز</label>
+      <input type="range" class="form-control" id="task-progress" min="0" max="100" value="0" oninput="document.getElementById('task-progress-val').textContent=this.value+'%'" style="padding:6px 0">
+      <span id="task-progress-val" style="font-size:.85rem;color:var(--primary);font-weight:700">0%</span>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-outline" onclick="closeModal('task-modal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveTask()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Achievement Modal -->
+<div class="modal-overlay" id="achieve-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">إضافة إنجاز / تقدير</div>
+      <button class="modal-close" onclick="closeModal('achieve-modal')">✕</button>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>الموظف *</label>
+        <select class="form-control" id="achieve-emp">
+          <option value="">-- اختر موظف --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>نوع الإنجاز *</label>
+        <select class="form-control" id="achieve-type">
+          <option value="excellence">🌟 تميز وظيفي</option>
+          <option value="innovation">💡 ابتكار وإبداع</option>
+          <option value="teamwork">🤝 روح الفريق</option>
+          <option value="punctuality">⏰ الالتزام والانضباط</option>
+          <option value="project">🎯 إنجاز مشروع</option>
+          <option value="other">📌 أخرى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>عنوان الإنجاز *</label>
+        <input class="form-control" id="achieve-title" placeholder="مثال: موظف الشهر">
+      </div>
+      <div class="form-group">
+        <label>التاريخ</label>
+        <input type="date" class="form-control" id="achieve-date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>الوصف</label>
+      <textarea class="form-control" id="achieve-desc" placeholder="تفاصيل الإنجاز..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-outline" onclick="closeModal('achieve-modal')">إلغاء</button>
+      <button class="btn btn-accent" onclick="saveAchievement()">🏅 حفظ الإنجاز</button>
+    </div>
+  </div>
+</div>
+
+<!-- File Edit Modal -->
+<div class="modal-overlay" id="file-edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ تعديل بيانات الوثيقة</div>
+      <button class="modal-close" onclick="closeModal('file-edit-modal')">✕</button>
+    </div>
+    <div id="file-edit-preview" style="text-align:center;margin-bottom:18px;padding:16px;background:#f7fafc;border-radius:12px">
+      <div id="file-edit-icon" style="font-size:2.5rem;margin-bottom:6px"></div>
+      <div id="file-edit-current-name" style="font-weight:700;color:var(--primary);font-size:.95rem;word-break:break-all"></div>
+      <div id="file-edit-current-meta" style="font-size:.78rem;color:var(--text-muted);margin-top:4px"></div>
+    </div>
+    <div class="form-group">
+      <label>اسم الوثيقة *</label>
+      <input class="form-control" id="file-edit-name" placeholder="أدخل اسم الوثيقة">
+    </div>
+    <div class="form-group">
+      <label>التصنيف</label>
+      <select class="form-control" id="file-edit-category"></select>
+    </div>
+    <div class="form-group">
+      <label>ملاحظة</label>
+      <textarea class="form-control" id="file-edit-note" placeholder="وصف أو ملاحظة..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>استبدال الملف (اختياري)</label>
+      <div style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:var(--transition)" id="file-edit-replace-zone" onclick="document.getElementById('file-edit-replace-input').click()">
+        <div style="font-size:1.4rem;margin-bottom:4px">🔄</div>
+        <p style="font-size:.85rem;color:var(--text-muted);margin:0">اضغط لاستبدال الملف بنسخة جديدة (اختياري)</p>
+        <p style="font-size:.78rem;color:var(--primary);margin-top:4px" id="file-edit-replace-name"></p>
+      </div>
+      <input type="file" id="file-edit-replace-input" style="display:none" onchange="handleFileReplace(this.files[0])">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-outline" onclick="closeModal('file-edit-modal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveFileEdit()">💾 حفظ التعديلات</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ===== DATA =====
+let DB = {
+  employees: [],
+  tasks: [],
+  achievements: [],
+  files: [],
+  empFiles: [],
+  activities: [],
+  departments: []
+};
+
+// قائمة الأقسام الافتراضية
+const DEFAULT_DEPARTMENTS = [
+  'مكتب المدير',
+  'الاتصال المؤسسي',
+  'الأمن والسلامة',
+  'مسؤول المنصة',
+  'مسؤول نور',
+  'مصادر التعلم',
+  'المكتبة',
+  'مكتب وكيل الشؤون المدرسية',
+  'مكتب وكيل الشؤون التعليمية',
+  'مكتب وكيل الشؤون الطلابية',
+  'الموجه الطلابي',
+  'خدمة المستفيد'
+];
+
+// بيانات محفوظة مسبقاً - تُحمَّل تلقائياً عند أول فتح على أي جهاز
+const EMBEDDED_DATA = {
+  "employees": [
+    {"id":"mo5movc5nm12","name":"طلال حضيض السلمي","title":"مدير المدرسة","dept":"مكتب المدير","phone":"","email":"","empId":"","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc59kw3","name":"عبدالله سعيد الغامدي","title":"وكيل الشؤون التعليمية","dept":"مكتب وكيل الشؤون التعليمية","phone":"","email":"","empId":"","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc511r3","name":"علي محمد الراشدي","title":"وكيل الشؤون الطلابية","dept":"مكتب وكيل الشؤون الطلابية","phone":"","email":"","empId":"","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc54u5y","name":"إبراهيم عبدالله الغامدي","title":"وكيل الشؤون المدرسية","dept":"مكتب وكيل الشؤون المدرسية","phone":"","email":"","empId":"","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc5nu28","name":"موسى عليان السلمي","title":"موجه طلابي","dept":"مكتب وكيل الشؤون الطلابية","phone":"","email":"","empId":"","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc58l4r","name":"زامل محمد الحربي","title":"موجه طلابي","dept":"مكتب وكيل الشؤون الطلابية","phone":"","email":"","empId":"","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc5fris","name":"نائف مسلم القرشي","title":"موجه طلابي","dept":"مكتب وكيل الشؤون الطلابية","phone":"","email":"","empId":"","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc5yfhq","name":"عبدالله مطلق ختروش العتيبي","title":"إداري","dept":"مكتب المدير","phone":"0505677732","email":"","empId":"1025417492","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc57iki","name":"عبدالله بندر محمد الشمراني","title":"إداري","dept":"الاتصال المؤسسي","phone":"0546417744","email":"","empId":"1043835204","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc51a3o","name":"سعد ظافر سعد القرني","title":"محضر مختبر","dept":"مسؤول المنصة","phone":"0555663214","email":"","empId":"1033137009","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc5r3rw","name":"عبدالرحمن علي عبدالله الغامدي","title":"إداري","dept":"مسؤول نور","phone":"0546877785","email":"","empId":"1043894920","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc5m9yo","name":"أحمد عبدالله مبارك باسعد","title":"إداري","dept":"مكتب وكيل الشؤون التعليمية","phone":"0564552329","email":"","empId":"1071322026","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc59rq2","name":"عبدالله علي محمد باسعيد","title":"إداري","dept":"مكتب وكيل الشؤون التعليمية","phone":"0540838060","email":"","empId":"1032380071","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc53t6j","name":"محمد خالد عمر ميرداد","title":"إداري","dept":"خدمة المستفيد","phone":"0506369392","email":"","empId":"1006869604","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc5ycr3","name":"وليد مصلح مسفر العوفي","title":"مستخدم","dept":"خدمة المستفيد","phone":"0599920930","email":"","empId":"1041200914","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc5ta3q","name":"سالم فروان حامد الغامدي","title":"إداري","dept":"مصادر التعلم","phone":"0568702411","email":"","empId":"1003202833","hireDate":"2026-04-19","status":"active","notes":"","photo":null},
+    {"id":"mo5movc5vsd9","name":"عبدالمجيد محمد علي الغامدي","title":"إداري","dept":"الأمن والسلامة","phone":"0563443366","email":"","empId":"1048891962","hireDate":"2026-04-19","status":"active","notes":"","photo":null}
+  ],
+  "tasks": [],
+  "achievements": [],
+  "files": [],
+  "empFiles": [],
+  "activities": []
+};
+
+function loadDB() {
+  const saved = localStorage.getItem('emp_mgmt_db');
+  if (saved) {
+    DB = JSON.parse(saved);
+  } else {
+    // أول مرة يُفتح البرنامج على هذا الجهاز - حمّل البيانات المدمجة
+    DB = JSON.parse(JSON.stringify(EMBEDDED_DATA));
+    localStorage.setItem('emp_mgmt_db', JSON.stringify(DB));
+  }
+  // Set defaults
+  if (!DB.employees) DB.employees = [];
+  if (!DB.tasks) DB.tasks = [];
+  if (!DB.achievements) DB.achievements = [];
+  if (!DB.files) DB.files = [];
+  if (!DB.empFiles) DB.empFiles = [];
+  if (!DB.activities) DB.activities = [];
+  if (!DB.departments || !DB.departments.length) DB.departments = [...DEFAULT_DEPARTMENTS];
+}
+
+function saveDB() {
+  localStorage.setItem('emp_mgmt_db', JSON.stringify(DB));
+}
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+// ===== NAV =====
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event && event.target.classList.add('active');
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'employees') renderEmployees();
+  if (id === 'tasks') renderTasks();
+  if (id === 'achievements') renderAchievements();
+  if (id === 'files') renderFiles();
+  if (id === 'reports') renderReports();
+  if (id === 'sync') renderSync();
+}
+
+// ===== MODAL =====
+let editEmpId = null, editTaskId = null;
+let currentEmpPhoto = null;
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function handleEmpPhotoSelect(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('يرجى اختيار ملف صورة', 'danger'); return; }
+  if (file.size > 2 * 1024 * 1024) { toast('حجم الصورة يجب أن يكون أقل من 2 ميجا', 'warning'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    // Compress by drawing on canvas
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const size = 300;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      // Crop to square (center)
+      const sMin = Math.min(img.width, img.height);
+      const sx = (img.width - sMin) / 2;
+      const sy = (img.height - sMin) / 2;
+      ctx.drawImage(img, sx, sy, sMin, sMin, 0, 0, size, size);
+      currentEmpPhoto = canvas.toDataURL('image/jpeg', 0.85);
+      updateEmpPhotoPreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateEmpPhotoPreview() {
+  const preview = document.getElementById('emp-photo-preview');
+  const removeBtn = document.getElementById('emp-photo-remove');
+  const name = document.getElementById('emp-name').value.trim();
+  if (currentEmpPhoto) {
+    preview.style.backgroundImage = `url(${currentEmpPhoto})`;
+    preview.textContent = '';
+    if (removeBtn) removeBtn.style.display = 'inline-flex';
+  } else {
+    preview.style.backgroundImage = '';
+    preview.textContent = name ? name.charAt(0) : '?';
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+}
+
+function clearEmpPhoto() {
+  currentEmpPhoto = null;
+  updateEmpPhotoPreview();
+}
+
+function openEmpModal(id = null) {
+  editEmpId = id;
+  currentEmpPhoto = null;
+  currentEmpDepts = [];
+  // Rebuild the modal content (in case it was replaced by profile view)
+  const modal = document.getElementById('emp-modal');
+  modal.querySelector('.modal').innerHTML = getEmpModalHTML();
+  populateDeptSelects();
+
+  document.getElementById('emp-modal-title').textContent = id ? 'تعديل بيانات الموظف' : 'إضافة موظف جديد';
+  const fields = ['emp-name','emp-title','emp-phone','emp-email','emp-id','emp-hire-date','emp-status','emp-notes'];
+  if (id) {
+    const e = DB.employees.find(x => x.id === id);
+    if (e) {
+      document.getElementById('emp-name').value = e.name || '';
+      document.getElementById('emp-title').value = e.title || '';
+      document.getElementById('emp-phone').value = e.phone || '';
+      document.getElementById('emp-email').value = e.email || '';
+      document.getElementById('emp-id').value = e.empId || '';
+      document.getElementById('emp-hire-date').value = e.hireDate || '';
+      document.getElementById('emp-status').value = e.status || 'active';
+      document.getElementById('emp-notes').value = e.notes || '';
+      currentEmpPhoto = e.photo || null;
+      // Handle both old (single dept) and new (depts array) formats
+      if (Array.isArray(e.depts) && e.depts.length) {
+        currentEmpDepts = [...e.depts];
+      } else if (e.dept) {
+        currentEmpDepts = [e.dept];
+      }
+    }
+  } else {
+    fields.forEach(f => { document.getElementById(f).value = ''; });
+    document.getElementById('emp-status').value = 'active';
+    document.getElementById('emp-hire-date').value = todayStr();
+  }
+  renderEmpDeptsChips();
+  updateEmpPhotoPreview();
+  // Update preview initial letter when name changes
+  document.getElementById('emp-name').addEventListener('input', updateEmpPhotoPreview);
+  openModal('emp-modal');
+}
+
+function getEmpModalHTML() {
+  return `
+    <div class="modal-header">
+      <div class="modal-title" id="emp-modal-title">إضافة موظف جديد</div>
+      <button class="modal-close" onclick="closeModal('emp-modal')">✕</button>
+    </div>
+    <div class="form-group" style="text-align:center;padding:16px;background:#f7fafc;border-radius:12px;margin-bottom:20px">
+      <label style="margin-bottom:10px">الصورة الشخصية</label>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div id="emp-photo-preview" style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;font-family:'Cairo',sans-serif;overflow:hidden;background-size:cover;background-position:center">?</div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('emp-photo-input').click()">📷 اختر صورة</button>
+          <button type="button" class="btn btn-danger btn-sm" id="emp-photo-remove" onclick="clearEmpPhoto()" style="display:none">🗑️ إزالة</button>
+        </div>
+        <input type="file" id="emp-photo-input" accept="image/*" capture="user" style="display:none" onchange="handleEmpPhotoSelect(this.files[0])">
+        <p style="font-size:.75rem;color:var(--text-muted);margin:0">يفضل صورة مربعة بحجم صغير</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>الاسم الكامل *</label>
+        <input class="form-control" id="emp-name" placeholder="أدخل الاسم الكامل">
+      </div>
+      <div class="form-group">
+        <label>المسمى الوظيفي *</label>
+        <input class="form-control" id="emp-title" placeholder="مثال: معلم رياضيات">
+      </div>
+      <div class="form-group">
+        <label>الأقسام * <span style="font-weight:400;color:var(--text-muted);font-size:.8rem">(يمكن اختيار أكثر من قسم)</span></label>
+        <div id="emp-depts-container" style="border:1.5px solid var(--border);border-radius:10px;padding:10px;background:#f7fafc;min-height:46px">
+          <div id="emp-depts-selected" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+          <select class="form-control" id="emp-dept-picker" onchange="addEmpDept(this.value);this.value=''" style="border:1px dashed var(--primary);background:#fff"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input class="form-control" id="emp-phone" placeholder="05xxxxxxxx" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>البريد الإلكتروني</label>
+        <input class="form-control" id="emp-email" placeholder="example@edu.sa" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>رقم الهوية / الوظيفي</label>
+        <input class="form-control" id="emp-id" placeholder="رقم الهوية" dir="ltr">
+      </div>
+      <div class="form-group">
+        <label>تاريخ التعيين</label>
+        <input type="date" class="form-control" id="emp-hire-date">
+      </div>
+      <div class="form-group">
+        <label>الحالة</label>
+        <select class="form-control" id="emp-status">
+          <option value="active">نشط</option>
+          <option value="leave">إجازة</option>
+          <option value="inactive">غير نشط</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>ملاحظات</label>
+      <textarea class="form-control" id="emp-notes" placeholder="معلومات إضافية..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-outline" onclick="closeModal('emp-modal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">💾 حفظ</button>
+    </div>
+  `;
+}
+
+function saveEmployee() {
+  const name = document.getElementById('emp-name').value.trim();
+  const title = document.getElementById('emp-title').value.trim();
+  if (!name || !title) { toast('يرجى ملء الاسم والمسمى الوظيفي', 'danger'); return; }
+  if (!currentEmpDepts.length) { toast('يرجى اختيار قسم واحد على الأقل', 'danger'); return; }
+  const obj = {
+    name, title,
+    depts: [...currentEmpDepts],
+    dept: currentEmpDepts[0], // للتوافق مع العرض القديم
+    phone: document.getElementById('emp-phone').value.trim(),
+    email: document.getElementById('emp-email').value.trim(),
+    empId: document.getElementById('emp-id').value.trim(),
+    hireDate: document.getElementById('emp-hire-date').value,
+    status: document.getElementById('emp-status').value,
+    notes: document.getElementById('emp-notes').value.trim(),
+    photo: currentEmpPhoto || null,
+  };
+  if (editEmpId) {
+    const idx = DB.employees.findIndex(x => x.id === editEmpId);
+    if (idx >= 0) { DB.employees[idx] = { ...DB.employees[idx], ...obj }; }
+    addActivity('✏️', `تم تعديل بيانات الموظف: ${name}`, 'info');
+  } else {
+    obj.id = genId();
+    DB.employees.push(obj);
+    addActivity('👤', `تمت إضافة موظف جديد: ${name}`, 'success');
+  }
+  saveDB();
+  closeModal('emp-modal');
+  renderEmployees();
+  updateHeaderStats();
+  toast(editEmpId ? 'تم تحديث بيانات الموظف' : 'تمت إضافة الموظف بنجاح', 'success');
+}
+
+function deleteEmployee(id) {
+  if (!confirm('هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف جميع ملفاته أيضاً.')) return;
+  const e = DB.employees.find(x => x.id === id);
+  DB.employees = DB.employees.filter(x => x.id !== id);
+  DB.empFiles = (DB.empFiles || []).filter(x => x.empId !== id);
+  saveDB();
+  renderEmployees();
+  updateHeaderStats();
+  addActivity('🗑️', `تم حذف الموظف: ${e?.name}`, 'danger');
+  toast('تم حذف الموظف وملفاته', 'danger');
+}
+
+// ===== RENDER EMPLOYEES =====
+let empView = 'card';
+let reorderMode = false;
+let draggedEmpId = null;
+
+function setEmpView(v) { empView = v; renderEmployees(); }
+
+function toggleReorderMode() {
+  reorderMode = !reorderMode;
+  const btn = document.getElementById('reorder-toggle-btn');
+  const sortSel = document.getElementById('emp-sort');
+  if (reorderMode) {
+    btn.classList.add('active');
+    btn.innerHTML = '✅ إنهاء الترتيب';
+    // Force custom sort when in reorder mode
+    sortSel.value = 'custom';
+    sortSel.disabled = true;
+    // Show banner
+    document.getElementById('reorder-banner-container').innerHTML = `
+      <div class="reorder-banner">
+        <div>🔀 <strong>وضع الترتيب مفعّل</strong> — اسحب الموظفين لإعادة ترتيبهم أو استخدم الأسهم ⬆️⬇️</div>
+        <button class="btn btn-primary btn-sm" onclick="toggleReorderMode()">✅ إنهاء</button>
+      </div>
+    `;
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML = '🔀 ترتيب';
+    sortSel.disabled = false;
+    document.getElementById('reorder-banner-container').innerHTML = '';
+  }
+  renderEmployees();
+}
+
+function moveEmpUp(id) {
+  const idx = DB.employees.findIndex(e => e.id === id);
+  if (idx <= 0) return;
+  [DB.employees[idx-1], DB.employees[idx]] = [DB.employees[idx], DB.employees[idx-1]];
+  saveDB();
+  renderEmployees();
+}
+
+function moveEmpDown(id) {
+  const idx = DB.employees.findIndex(e => e.id === id);
+  if (idx === -1 || idx >= DB.employees.length - 1) return;
+  [DB.employees[idx+1], DB.employees[idx]] = [DB.employees[idx], DB.employees[idx+1]];
+  saveDB();
+  renderEmployees();
+}
+
+function moveEmpToTop(id) {
+  const idx = DB.employees.findIndex(e => e.id === id);
+  if (idx <= 0) return;
+  const [emp] = DB.employees.splice(idx, 1);
+  DB.employees.unshift(emp);
+  saveDB();
+  renderEmployees();
+}
+
+function moveEmpToBottom(id) {
+  const idx = DB.employees.findIndex(e => e.id === id);
+  if (idx === -1 || idx >= DB.employees.length - 1) return;
+  const [emp] = DB.employees.splice(idx, 1);
+  DB.employees.push(emp);
+  saveDB();
+  renderEmployees();
+}
+
+function onDragStart(e, id) {
+  if (!reorderMode) return;
+  draggedEmpId = id;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', id); } catch(_) {}
+}
+
+function onDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  draggedEmpId = null;
+}
+
+function onDragOver(e, id) {
+  if (!reorderMode || !draggedEmpId) return;
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e, targetId) {
+  if (!reorderMode || !draggedEmpId) return;
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (draggedEmpId === targetId) return;
+  const fromIdx = DB.employees.findIndex(x => x.id === draggedEmpId);
+  const toIdx = DB.employees.findIndex(x => x.id === targetId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  const [moved] = DB.employees.splice(fromIdx, 1);
+  DB.employees.splice(toIdx, 0, moved);
+  saveDB();
+  renderEmployees();
+  toast('تم تحديث الترتيب', 'success');
+}
+
+// ===== DEPARTMENTS MANAGEMENT =====
+function populateDeptSelects() {
+  const selects = ['emp-filter-dept'];
+  const depts = DB.departments || [];
+  selects.forEach(sid => {
+    const el = document.getElementById(sid);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">كل الأقسام</option>' +
+      depts.map(d => `<option>${d}</option>`).join('');
+    el.value = cur;
+  });
+  // Populate dept-picker (the picker dropdown inside multi-select UI)
+  const picker = document.getElementById('emp-dept-picker');
+  if (picker) {
+    picker.innerHTML = '<option value="">➕ إضافة قسم...</option>' +
+      depts.map(d => `<option>${d}</option>`).join('');
+  }
+}
+
+// ===== EMPLOYEE MULTI-DEPARTMENTS =====
+let currentEmpDepts = [];
+
+function addEmpDept(dept) {
+  if (!dept) return;
+  if (currentEmpDepts.includes(dept)) { toast('هذا القسم مضاف مسبقاً', 'warning'); return; }
+  currentEmpDepts.push(dept);
+  renderEmpDeptsChips();
+}
+
+function removeEmpDept(dept) {
+  currentEmpDepts = currentEmpDepts.filter(d => d !== dept);
+  renderEmpDeptsChips();
+}
+
+function renderEmpDeptsChips() {
+  const cont = document.getElementById('emp-depts-selected');
+  if (!cont) return;
+  if (!currentEmpDepts.length) {
+    cont.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;padding:4px 2px">لم يتم اختيار أي قسم</span>';
+    return;
+  }
+  cont.innerHTML = currentEmpDepts.map(d => `
+    <span style="display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600">
+      ${d}
+      <button type="button" onclick="removeEmpDept('${d.replace(/'/g,"\\'")}')" style="background:rgba(255,255,255,0.25);border:none;color:#fff;width:18px;height:18px;border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;padding:0">✕</button>
+    </span>
+  `).join('');
+}
+
+function openDeptModal() {
+  renderDeptList();
+  openModal('dept-modal');
+}
+
+function renderDeptList() {
+  const list = document.getElementById('dept-list');
+  if (!list) return;
+  if (!DB.departments.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:20px"><p>لا توجد أقسام</p></div>';
+    return;
+  }
+  list.innerHTML = DB.departments.map((d, i) => {
+    const count = DB.employees.filter(e => {
+      const ed = (e.depts && e.depts.length) ? e.depts : (e.dept ? [e.dept] : []);
+      return ed.includes(d);
+    }).length;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f7fafc;border-radius:10px;margin-bottom:8px;border:1px solid var(--border)">
+        <div style="width:32px;height:32px;background:var(--primary);color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem">${i+1}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;color:var(--primary);font-size:.92rem">${d}</div>
+          <div style="font-size:.76rem;color:var(--text-muted)">👥 ${count} موظف</div>
+        </div>
+        <button class="btn btn-outline btn-icon" onclick="renameDept(${i})" title="تعديل">✏️</button>
+        <button class="btn btn-danger btn-icon" onclick="deleteDept(${i})" title="حذف">🗑️</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function addDept() {
+  const input = document.getElementById('new-dept-name');
+  const name = input.value.trim();
+  if (!name) { toast('يرجى إدخال اسم القسم', 'danger'); return; }
+  if (DB.departments.includes(name)) { toast('هذا القسم موجود مسبقاً', 'warning'); return; }
+  DB.departments.push(name);
+  saveDB();
+  input.value = '';
+  renderDeptList();
+  populateDeptSelects();
+  toast('تمت إضافة القسم', 'success');
+}
+
+function renameDept(idx) {
+  const oldName = DB.departments[idx];
+  const newName = prompt('تعديل اسم القسم:', oldName);
+  if (!newName || !newName.trim()) return;
+  const trimmed = newName.trim();
+  if (trimmed === oldName) return;
+  if (DB.departments.includes(trimmed)) { toast('هذا الاسم مستخدم مسبقاً', 'warning'); return; }
+  DB.departments[idx] = trimmed;
+  // Update all employees with the old dept
+  DB.employees.forEach(e => {
+    if (e.dept === oldName) e.dept = trimmed;
+    if (e.depts && e.depts.length) {
+      e.depts = e.depts.map(d => d === oldName ? trimmed : d);
+    }
+  });
+  saveDB();
+  renderDeptList();
+  populateDeptSelects();
+  renderEmployees();
+  toast('تم تعديل القسم', 'success');
+}
+
+function deleteDept(idx) {
+  const name = DB.departments[idx];
+  const count = DB.employees.filter(e => {
+    const ed = (e.depts && e.depts.length) ? e.depts : (e.dept ? [e.dept] : []);
+    return ed.includes(name);
+  }).length;
+  let msg = `حذف قسم "${name}"؟`;
+  if (count > 0) msg += `\n\n⚠️ يوجد ${count} موظف في هذا القسم، سيتم إزالته من بياناتهم.`;
+  if (!confirm(msg)) return;
+  DB.departments.splice(idx, 1);
+  DB.employees.forEach(e => {
+    if (e.dept === name) e.dept = '';
+    if (e.depts && e.depts.length) e.depts = e.depts.filter(d => d !== name);
+  });
+  saveDB();
+  renderDeptList();
+  populateDeptSelects();
+  renderEmployees();
+  toast('تم حذف القسم', 'danger');
+}
+
+// قائمة الموظفين الافتراضية للمدرسة
+const DEFAULT_STAFF = [
+  { name: 'طلال حضيض السلمي', title: 'مدير المدرسة', dept: 'مكتب المدير' },
+  { name: 'عبدالله سعيد الغامدي', title: 'وكيل الشؤون التعليمية', dept: 'مكتب وكيل الشؤون التعليمية' },
+  { name: 'علي محمد الراشدي', title: 'وكيل الشؤون الطلابية', dept: 'مكتب وكيل الشؤون الطلابية' },
+  { name: 'إبراهيم عبدالله الغامدي', title: 'وكيل الشؤون المدرسية', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'موسى عليان السلمي', title: 'موجه طلابي', dept: 'مكتب وكيل الشؤون الطلابية' },
+  { name: 'زامل محمد الحربي', title: 'موجه طلابي', dept: 'مكتب وكيل الشؤون الطلابية' },
+  { name: 'نائف مسلم القرشي', title: 'موجه طلابي', dept: 'مكتب وكيل الشؤون الطلابية' },
+  { name: 'عبدالله مطلق ختروش العتيبي', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'عبدالله بندر الشمراني', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'سعد ظافر القرني', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'عبدالرحمن علي الغامدي', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'أحمد عبدالله باسعد', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'عبدالله باسعيد', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'محمد ميرداد', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'وليد مصلح العوفي', title: 'مستخدم', dept: 'الأمن والسلامة' },
+  { name: 'سالم فروان الغامدي', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' },
+  { name: 'عبدالمجيد محمد الغامدي', title: 'إداري', dept: 'مكتب وكيل الشؤون المدرسية' }
+];
+
+function importStaff() {
+  const existing = DB.employees.map(e => e.name);
+  const toAdd = DEFAULT_STAFF.filter(s => !existing.includes(s.name));
+
+  if (!toAdd.length) {
+    toast('جميع الموظفين الافتراضيين مضافون مسبقاً', 'warning');
+    return;
+  }
+
+  if (!confirm(`سيتم إضافة ${toAdd.length} موظف إلى القائمة. هل تريد المتابعة؟\n\nيمكنك تعديل القسم والمسمى لكل موظف لاحقاً حسب الحاجة.`)) return;
+
+  toAdd.forEach(s => {
+    DB.employees.push({
+      id: genId(),
+      name: s.name,
+      title: s.title,
+      depts: [s.dept],
+      dept: s.dept,
+      phone: '',
+      email: '',
+      empId: '',
+      hireDate: todayStr(),
+      status: 'active',
+      notes: '',
+      photo: null
+    });
+  });
+
+  saveDB();
+  renderEmployees();
+  updateHeaderStats();
+  addActivity('📥', `تم استيراد ${toAdd.length} موظف`, 'success');
+  toast(`تم إضافة ${toAdd.length} موظف بنجاح`, 'success');
+}
+
+function renderEmployees() {
+  populateDeptSelects();
+  const search = document.getElementById('emp-search').value.toLowerCase();
+  const dept = document.getElementById('emp-filter-dept').value;
+  const status = document.getElementById('emp-filter-status').value;
+  const sortBy = document.getElementById('emp-sort') ? document.getElementById('emp-sort').value : 'custom';
+
+  let list = DB.employees.filter(e => {
+    const matchSearch = !search || e.name.toLowerCase().includes(search) || (e.title||'').toLowerCase().includes(search);
+    const empDepts = (e.depts && e.depts.length) ? e.depts : (e.dept ? [e.dept] : []);
+    const matchDept = !dept || empDepts.includes(dept);
+    const matchStatus = !status || e.status === status;
+    return matchSearch && matchDept && matchStatus;
+  });
+
+  // Apply sort
+  if (sortBy === 'name') {
+    list = [...list].sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+  } else if (sortBy === 'dept') {
+    list = [...list].sort((a,b) => {
+      const da = ((a.depts && a.depts[0]) || a.dept || '');
+      const db = ((b.depts && b.depts[0]) || b.dept || '');
+      return da.localeCompare(db, 'ar');
+    });
+  } else if (sortBy === 'hireDate') {
+    list = [...list].sort((a,b) => (b.hireDate||'').localeCompare(a.hireDate||''));
+  } else if (sortBy === 'status') {
+    const order = { active:1, leave:2, inactive:3 };
+    list = [...list].sort((a,b) => (order[a.status]||9) - (order[b.status]||9));
+  }
+  // 'custom' keeps the DB.employees order (after filter)
+
+  // In reorder mode, show ALL employees (ignore filters) in their DB order
+  if (reorderMode) {
+    list = [...DB.employees];
+  }
+
+  document.getElementById('emp-card-view').style.display = empView === 'card' ? '' : 'none';
+  document.getElementById('emp-table-view').style.display = empView === 'table' ? '' : 'none';
+
+  const containerClass = reorderMode ? 'grid-3 reorder-mode' : 'grid-3';
+
+  if (empView === 'card') {
+    const cont = document.getElementById('emp-cards');
+    cont.className = containerClass;
+    if (!list.length) {
+      cont.innerHTML = '<div style="grid-column:1/-1"><div class="empty-state"><div class="empty-icon">👥</div><h3>لا يوجد موظفون</h3><p>ابدأ بإضافة موظف جديد</p></div></div>';
+      return;
+    }
+    cont.innerHTML = list.map((e, i) => {
+      const empDepts = (e.depts && e.depts.length) ? e.depts : (e.dept ? [e.dept] : []);
+      const globalIdx = DB.employees.findIndex(x => x.id === e.id);
+      const isFirst = globalIdx === 0;
+      const isLast = globalIdx === DB.employees.length - 1;
+      return `
+      <div class="emp-card"
+        ${reorderMode?`draggable="true"
+        ondragstart="onDragStart(event,'${e.id}')"
+        ondragend="onDragEnd(event)"
+        ondragover="onDragOver(event,'${e.id}')"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'${e.id}')"`:''}>
+        ${reorderMode?`<div style="position:absolute;top:8px;right:8px;background:var(--primary);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;z-index:1">${globalIdx+1}</div>`:''}
+        <div class="emp-avatar" ${e.photo?`style="background-image:url(${e.photo});background-size:cover;background-position:center;color:transparent"`:''}>${e.name.charAt(0)}</div>
+        <div class="emp-name">${e.name}</div>
+        <div class="emp-role">${e.title}</div>
+        <div class="emp-meta">
+          <span class="badge ${statusBadge(e.status)}">${statusLabel(e.status)}</span>
+          ${empDepts.map(d=>`<span class="badge badge-primary">${d}</span>`).join('')}
+        </div>
+        ${e.phone ? `<div style="font-size:.8rem;color:var(--text-muted);text-align:center;margin-bottom:10px">📞 ${e.phone}</div>` : ''}
+        <div style="font-size:.78rem;color:var(--text-muted);text-align:center;margin-bottom:12px">
+          المهام: <strong>${DB.tasks.filter(t=>t.assignId===e.id).length}</strong> |
+          الإنجازات: <strong>${DB.achievements.filter(a=>a.empId===e.id).length}</strong> |
+          📁 <strong>${(DB.empFiles||[]).filter(f=>f.empId===e.id).length}</strong>
+        </div>
+        <div class="emp-actions" style="align-items:center">
+          ${reorderMode?`
+            <div class="reorder-handle" title="اسحب لتحريك">⠿</div>
+            <div class="reorder-arrows">
+              <button onclick="moveEmpUp('${e.id}')" ${isFirst?'disabled':''} title="أعلى">▲</button>
+              <button onclick="moveEmpDown('${e.id}')" ${isLast?'disabled':''} title="أسفل">▼</button>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="moveEmpToTop('${e.id}')" ${isFirst?'disabled':''} title="للأعلى">⏫</button>
+            <button class="btn btn-outline btn-sm" onclick="moveEmpToBottom('${e.id}')" ${isLast?'disabled':''} title="للأسفل">⏬</button>
+          `:`
+            <button class="btn btn-info btn-sm" onclick="showEmpProfile('${e.id}')">👁️ عرض</button>
+            <button class="btn btn-accent btn-sm" onclick="openEmpFolder('${e.id}')" title="مجلد الموظف">📁</button>
+            <button class="btn btn-outline btn-sm" onclick="openEmpModal('${e.id}')">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${e.id}')">🗑️</button>
+          `}
+        </div>
+      </div>
+    `;
+    }).join('');
+  } else {
+    const tbody = document.getElementById('emp-table-body');
+    tbody.className = reorderMode ? 'reorder-mode' : '';
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted)">لا يوجد موظفون</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map((e, i) => {
+      const empDepts = (e.depts && e.depts.length) ? e.depts : (e.dept ? [e.dept] : []);
+      const globalIdx = DB.employees.findIndex(x => x.id === e.id);
+      const isFirst = globalIdx === 0;
+      const isLast = globalIdx === DB.employees.length - 1;
+      return `
+      <tr
+        ${reorderMode?`draggable="true"
+        ondragstart="onDragStart(event,'${e.id}')"
+        ondragend="onDragEnd(event)"
+        ondragover="onDragOver(event,'${e.id}')"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'${e.id}')"`:''}>
+        <td>${globalIdx+1}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${reorderMode?`<span class="reorder-handle" style="width:24px;height:24px;font-size:.9rem">⠿</span>`:''}
+            <div class="emp-avatar" style="width:36px;height:36px;font-size:.9rem;margin:0;${e.photo?`background-image:url(${e.photo});background-size:cover;background-position:center;color:transparent`:''}">${e.name.charAt(0)}</div>
+            <strong>${e.name}</strong>
+          </div>
+        </td>
+        <td><div style="display:flex;flex-wrap:wrap;gap:4px">${empDepts.map(d=>`<span class="badge badge-primary" style="font-size:.72rem">${d}</span>`).join('')}</div></td>
+        <td>${e.title}</td>
+        <td>${e.phone||'-'}</td>
+        <td><span class="badge ${statusBadge(e.status)}">${statusLabel(e.status)}</span></td>
+        <td>${e.hireDate||'-'}</td>
+        <td class="td-actions">
+          ${reorderMode?`
+            <button class="btn btn-primary btn-icon" onclick="moveEmpUp('${e.id}')" ${isFirst?'disabled':''} title="أعلى">▲</button>
+            <button class="btn btn-primary btn-icon" onclick="moveEmpDown('${e.id}')" ${isLast?'disabled':''} title="أسفل">▼</button>
+            <button class="btn btn-outline btn-icon" onclick="moveEmpToTop('${e.id}')" ${isFirst?'disabled':''} title="للأعلى">⏫</button>
+            <button class="btn btn-outline btn-icon" onclick="moveEmpToBottom('${e.id}')" ${isLast?'disabled':''} title="للأسفل">⏬</button>
+          `:`
+            <button class="btn btn-info btn-icon" onclick="showEmpProfile('${e.id}')" title="عرض">👁️</button>
+            <button class="btn btn-accent btn-icon" onclick="openEmpFolder('${e.id}')" title="مجلد الموظف">📁</button>
+            <button class="btn btn-outline btn-icon" onclick="openEmpModal('${e.id}')" title="تعديل">✏️</button>
+            <button class="btn btn-danger btn-icon" onclick="deleteEmployee('${e.id}')" title="حذف">🗑️</button>
+          `}
+        </td>
+      </tr>
+    `;
+    }).join('');
+  }
+}
+
+function showEmpProfile(id) {
+  const e = DB.employees.find(x => x.id === id);
+  if (!e) return;
+  const tasks = DB.tasks.filter(t => t.assignId === id);
+  const achievements = DB.achievements.filter(a => a.empId === id);
+  const done = tasks.filter(t => t.status === 'completed').length;
+  const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
+
+  const empFiles = (DB.empFiles || []).filter(f => f.empId === id);
+
+  const html = `
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="emp-avatar" style="width:110px;height:110px;font-size:2.4rem;margin:0 auto 12px;border:4px solid var(--accent);box-shadow:0 4px 20px rgba(26,58,92,0.2);${e.photo?`background-image:url(${e.photo});background-size:cover;background-position:center;color:transparent`:''}">${e.name.charAt(0)}</div>
+      <div style="font-family:'Cairo',sans-serif;font-size:1.3rem;font-weight:700;color:var(--primary)">${e.name}</div>
+      <div style="color:var(--text-muted);font-size:.9rem">${e.title}</div>
+      <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+        ${((e.depts && e.depts.length) ? e.depts : (e.dept ? [e.dept] : [])).map(d=>`<span class="badge badge-primary">${d}</span>`).join('')}
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <span class="badge ${statusBadge(e.status)}">${statusLabel(e.status)}</span>
+        ${e.phone?`<span class="badge badge-info">📞 ${e.phone}</span>`:''}
+        ${e.hireDate?`<span class="badge badge-accent">📅 ${e.hireDate}</span>`:''}
+      </div>
+    </div>
+
+    <div class="tabs" style="margin-bottom:18px">
+      <button class="tab-btn active" onclick="showProfileTab(event,'prof-overview')">📊 نظرة عامة</button>
+      <button class="tab-btn" onclick="showProfileTab(event,'prof-files')">📁 مجلد الموظف <span class="badge badge-accent" style="margin-right:4px">${empFiles.length}</span></button>
+    </div>
+
+    <div id="prof-overview">
+      <div class="grid-3" style="text-align:center;margin-bottom:20px">
+        <div style="padding:14px;background:#f0f4f8;border-radius:10px">
+          <div style="font-size:1.6rem;font-weight:800;color:var(--primary)">${tasks.length}</div>
+          <div style="font-size:.8rem;color:var(--text-muted)">المهام الكلية</div>
+        </div>
+        <div style="padding:14px;background:#d5f5e3;border-radius:10px">
+          <div style="font-size:1.6rem;font-weight:800;color:var(--success)">${done}</div>
+          <div style="font-size:.8rem;color:var(--text-muted)">منجزة</div>
+        </div>
+        <div style="padding:14px;background:#fdf3e3;border-radius:10px">
+          <div style="font-size:1.6rem;font-weight:800;color:var(--warning)">${achievements.length}</div>
+          <div style="font-size:.8rem;color:var(--text-muted)">إنجاز</div>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:.85rem">
+          <span>نسبة إنجاز المهام</span><strong>${pct}%</strong>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>
+      ${e.notes?`<div style="background:#f7fafc;border-radius:10px;padding:12px;font-size:.88rem;color:var(--text-muted)">📝 ${e.notes}</div>`:''}
+    </div>
+
+    <div id="prof-files" style="display:none">
+      <div class="file-upload-area" id="emp-drop-zone-${id}" onclick="document.getElementById('emp-file-input-${id}').click()">
+        <div class="upload-icon">📁</div>
+        <p><strong>اضغط لرفع وثيقة</strong> أو اسحب وأفلت هنا</p>
+        <p style="margin-top:6px;font-size:.8rem">وثائق خاصة بـ ${e.name}</p>
+      </div>
+      <input type="file" id="emp-file-input-${id}" style="display:none" multiple onchange="handleEmpFileUpload('${id}',this.files)">
+
+      <div class="form-group" style="margin-top:14px">
+        <label>تصنيف الملف</label>
+        <select class="form-control" id="emp-file-cat-${id}">
+          <option>عقد عمل</option>
+          <option>صورة هوية</option>
+          <option>السيرة الذاتية</option>
+          <option>المؤهلات والشهادات</option>
+          <option>الخطابات الإدارية</option>
+          <option>التقييمات</option>
+          <option>الإجازات</option>
+          <option>مستندات شخصية</option>
+          <option>أخرى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ملاحظة</label>
+        <input class="form-control" id="emp-file-note-${id}" placeholder="وصف اختياري للملف...">
+      </div>
+
+      <div style="margin-top:18px">
+        <div style="font-weight:700;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+          <span>📂 الوثائق المحفوظة (${empFiles.length})</span>
+        </div>
+        <div id="emp-files-list-${id}" class="file-list"></div>
+      </div>
+    </div>
+  `;
+
+  // Reuse emp modal as profile view
+  const modal = document.getElementById('emp-modal');
+  modal.querySelector('.modal').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-title">ملف الموظف</div>
+      <button class="modal-close" onclick="closeModal('emp-modal')">✕</button>
+    </div>
+    ${html}
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn btn-primary" onclick="closeModal('emp-modal');openEmpModal('${id}')">✏️ تعديل البيانات</button>
+    </div>
+  `;
+  openModal('emp-modal');
+  renderEmpFiles(id);
+
+  // Setup drag and drop for the employee drop zone
+  const dz = document.getElementById(`emp-drop-zone-${id}`);
+  if (dz) {
+    dz.addEventListener('dragover', ev => { ev.preventDefault(); dz.classList.add('dragging'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+    dz.addEventListener('drop', ev => {
+      ev.preventDefault(); dz.classList.remove('dragging');
+      handleEmpFileUpload(id, ev.dataTransfer.files);
+    });
+  }
+}
+
+function showProfileTab(ev, tabId) {
+  document.querySelectorAll('#emp-modal .tab-btn').forEach(b => b.classList.remove('active'));
+  ev.target.classList.add('active');
+  ['prof-overview','prof-files'].forEach(t => {
+    const el = document.getElementById(t);
+    if (el) el.style.display = t === tabId ? 'block' : 'none';
+  });
+}
+
+// ===== EMPLOYEE FILES =====
+function openEmpFolder(id) {
+  showEmpProfile(id);
+  // Wait a tick for DOM to render, then click the files tab
+  setTimeout(() => {
+    const tabs = document.querySelectorAll('#emp-modal .tab-btn');
+    if (tabs.length >= 2) tabs[1].click();
+  }, 50);
+}
+
+function handleEmpFileUpload(empId, files) {
+  const cat = document.getElementById(`emp-file-cat-${empId}`).value;
+  const note = document.getElementById(`emp-file-note-${empId}`).value.trim();
+  if (!DB.empFiles) DB.empFiles = [];
+  let uploaded = 0;
+  Array.from(files).forEach(f => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      DB.empFiles.push({
+        id: genId(),
+        empId,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        category: cat,
+        note,
+        date: todayStr(),
+        data: e.target.result
+      });
+      uploaded++;
+      if (uploaded === files.length) {
+        saveDB();
+        renderEmpFiles(empId);
+        const emp = DB.employees.find(x => x.id === empId);
+        addActivity('📎', `تم رفع ${files.length} ملف لموظف: ${emp?.name}`, 'info');
+        toast('تم رفع الوثائق بنجاح', 'success');
+        // Update count in tab
+        const tab = document.querySelector('#emp-modal .tab-btn:nth-child(2) .badge');
+        if (tab) tab.textContent = DB.empFiles.filter(x => x.empId === empId).length;
+      }
+    };
+    reader.readAsDataURL(f);
+  });
+  document.getElementById(`emp-file-note-${empId}`).value = '';
+}
+
+function renderEmpFiles(empId) {
+  const cont = document.getElementById(`emp-files-list-${empId}`);
+  if (!cont) return;
+  const files = (DB.empFiles || []).filter(f => f.empId === empId).reverse();
+  if (!files.length) {
+    cont.innerHTML = '<div class="empty-state" style="padding:30px"><div class="empty-icon">📂</div><p>لا توجد وثائق لهذا الموظف بعد</p></div>';
+    return;
+  }
+  cont.innerHTML = files.map(f => `
+    <div class="file-item">
+      <div class="file-icon">${fileIcon(f.type)}</div>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">
+          <span class="badge badge-accent" style="font-size:.7rem">${f.category}</span>
+          ${formatSize(f.size)} | ${f.date}${f.note?' | '+f.note:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-info btn-sm" onclick="downloadEmpFile('${f.id}')" title="تحميل">⬇️</button>
+        <button class="btn btn-outline btn-sm" onclick="editEmpFile('${f.id}')" title="تعديل">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEmpFile('${f.id}','${empId}')" title="حذف">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function downloadEmpFile(id) {
+  const f = (DB.empFiles || []).find(x => x.id === id);
+  if (!f) return;
+  const a = document.createElement('a');
+  a.href = f.data;
+  a.download = f.name;
+  a.click();
+}
+
+function deleteEmpFile(id, empId) {
+  if (!confirm('حذف هذه الوثيقة؟')) return;
+  DB.empFiles = (DB.empFiles || []).filter(x => x.id !== id);
+  saveDB();
+  renderEmpFiles(empId);
+  // Update badge count
+  const tab = document.querySelector('#emp-modal .tab-btn:nth-child(2) .badge');
+  if (tab) tab.textContent = DB.empFiles.filter(x => x.empId === empId).length;
+  toast('تم حذف الوثيقة', 'danger');
+}
+
+// ===== TASKS =====
+function openTaskModal(id = null) {
+  editTaskId = id;
+  populateEmpSelects();
+  document.getElementById('task-modal-title').textContent = id ? 'تعديل المهمة' : 'إضافة مهمة جديدة';
+  if (id) {
+    const t = DB.tasks.find(x => x.id === id);
+    if (t) {
+      document.getElementById('task-title').value = t.title || '';
+      document.getElementById('task-assign').value = t.assignId || '';
+      document.getElementById('task-priority').value = t.priority || 'medium';
+      document.getElementById('task-status').value = t.status || 'pending';
+      document.getElementById('task-due').value = t.due || '';
+      document.getElementById('task-desc').value = t.desc || '';
+      document.getElementById('task-progress').value = t.progress || 0;
+      document.getElementById('task-progress-val').textContent = (t.progress || 0) + '%';
+    }
+  } else {
+    ['task-title','task-desc'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('task-priority').value = 'medium';
+    document.getElementById('task-status').value = 'pending';
+    document.getElementById('task-due').value = '';
+    document.getElementById('task-assign').value = '';
+    document.getElementById('task-progress').value = 0;
+    document.getElementById('task-progress-val').textContent = '0%';
+  }
+  openModal('task-modal');
+}
+
+function saveTask() {
+  const title = document.getElementById('task-title').value.trim();
+  if (!title) { toast('يرجى إدخال عنوان المهمة', 'danger'); return; }
+  const assignId = document.getElementById('task-assign').value;
+  const emp = DB.employees.find(x => x.id === assignId);
+  const obj = {
+    title,
+    assignId,
+    assignName: emp ? emp.name : '',
+    priority: document.getElementById('task-priority').value,
+    status: document.getElementById('task-status').value,
+    due: document.getElementById('task-due').value,
+    desc: document.getElementById('task-desc').value.trim(),
+    progress: parseInt(document.getElementById('task-progress').value),
+    createdAt: new Date().toISOString()
+  };
+  if (editTaskId) {
+    const idx = DB.tasks.findIndex(x => x.id === editTaskId);
+    if (idx >= 0) DB.tasks[idx] = { ...DB.tasks[idx], ...obj };
+    addActivity('✏️', `تم تعديل المهمة: ${title}`, 'info');
+  } else {
+    obj.id = genId();
+    DB.tasks.push(obj);
+    addActivity('📋', `تمت إضافة مهمة: ${title}`, 'success');
+  }
+  saveDB();
+  closeModal('task-modal');
+  renderTasks();
+  updateHeaderStats();
+  toast(editTaskId ? 'تم تحديث المهمة' : 'تمت إضافة المهمة', 'success');
+}
+
+function deleteTask(id) {
+  if (!confirm('حذف هذه المهمة؟')) return;
+  DB.tasks = DB.tasks.filter(x => x.id !== id);
+  saveDB(); renderTasks(); updateHeaderStats();
+  toast('تم حذف المهمة', 'danger');
+}
+
+function renderTasks() {
+  const search = document.getElementById('task-search').value.toLowerCase();
+  const filterStatus = document.getElementById('task-filter-status').value;
+  const filterPriority = document.getElementById('task-filter-priority').value;
+
+  let list = DB.tasks.filter(t => {
+    const ms = !search || t.title.toLowerCase().includes(search) || (t.assignName||'').toLowerCase().includes(search);
+    const mst = !filterStatus || t.status === filterStatus;
+    const mp = !filterPriority || t.priority === filterPriority;
+    return ms && mst && mp;
+  });
+
+  const high = list.filter(t => t.priority === 'high');
+  const other = list.filter(t => t.priority !== 'high');
+
+  const taskCard = t => `
+    <div class="task-card priority-${t.priority} status-${t.status}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div class="task-title">${t.title}</div>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          <button class="btn btn-outline btn-icon btn-sm" onclick="openTaskModal('${t.id}')" title="تعديل">✏️</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="deleteTask('${t.id}')" title="حذف">🗑️</button>
+        </div>
+      </div>
+      <div class="task-meta">
+        <span class="badge ${priorityBadge(t.priority)}">${priorityLabel(t.priority)}</span>
+        <span class="badge ${taskStatusBadge(t.status)}">${taskStatusLabel(t.status)}</span>
+        ${t.due?`<span class="task-assign">📅 ${t.due}</span>`:''}
+        ${t.assignName?`<span class="task-assign">👤 ${t.assignName}</span>`:''}
+      </div>
+      ${t.desc?`<div style="font-size:.8rem;color:var(--text-muted);margin-top:6px">${t.desc}</div>`:''}
+      ${t.progress>0?`
+        <div style="margin-top:8px">
+          <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px">
+            <span>التقدم</span><strong>${t.progress}%</strong>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%"></div></div>
+        </div>
+      `:''}
+    </div>
+  `;
+
+  document.getElementById('tasks-high').innerHTML = high.length
+    ? high.map(taskCard).join('')
+    : '<div class="empty-state" style="padding:30px"><div class="empty-icon" style="font-size:2rem">✅</div><p>لا توجد مهام عالية الأولوية</p></div>';
+
+  document.getElementById('tasks-other').innerHTML = other.length
+    ? other.map(taskCard).join('')
+    : '<div class="empty-state" style="padding:30px"><div class="empty-icon" style="font-size:2rem">📋</div><p>لا توجد مهام أخرى</p></div>';
+}
+
+// ===== ACHIEVEMENTS =====
+const achieveIcons = { excellence:'🌟', innovation:'💡', teamwork:'🤝', punctuality:'⏰', project:'🎯', other:'📌' };
+const achieveLabels = { excellence:'تميز وظيفي', innovation:'ابتكار وإبداع', teamwork:'روح الفريق', punctuality:'الالتزام', project:'إنجاز مشروع', other:'أخرى' };
+
+function openAchieveModal() {
+  populateEmpSelects();
+  ['achieve-title','achieve-desc'].forEach(f => document.getElementById(f).value = '');
+  document.getElementById('achieve-emp').value = '';
+  document.getElementById('achieve-type').value = 'excellence';
+  document.getElementById('achieve-date').value = todayStr();
+  openModal('achieve-modal');
+}
+
+function saveAchievement() {
+  const empId = document.getElementById('achieve-emp').value;
+  const title = document.getElementById('achieve-title').value.trim();
+  if (!empId || !title) { toast('يرجى اختيار الموظف وإدخال العنوان', 'danger'); return; }
+  const emp = DB.employees.find(x => x.id === empId);
+  const obj = {
+    id: genId(),
+    empId,
+    empName: emp ? emp.name : '',
+    type: document.getElementById('achieve-type').value,
+    title,
+    date: document.getElementById('achieve-date').value,
+    desc: document.getElementById('achieve-desc').value.trim()
+  };
+  DB.achievements.push(obj);
+  saveDB();
+  closeModal('achieve-modal');
+  renderAchievements();
+  updateHeaderStats();
+  addActivity('🏆', `إنجاز جديد لـ ${obj.empName}: ${title}`, 'success');
+  toast('تمت إضافة الإنجاز بنجاح', 'success');
+}
+
+function deleteAchievement(id) {
+  if (!confirm('حذف هذا الإنجاز؟')) return;
+  DB.achievements = DB.achievements.filter(x => x.id !== id);
+  saveDB(); renderAchievements(); updateHeaderStats();
+  toast('تم حذف الإنجاز', 'danger');
+}
+
+function renderAchievements() {
+  const search = document.getElementById('achieve-search').value.toLowerCase();
+  const empId = document.getElementById('achieve-filter-emp').value;
+  const type = document.getElementById('achieve-filter-type').value;
+
+  // populate emp filter
+  const sel = document.getElementById('achieve-filter-emp');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">كل الموظفين</option>' +
+    DB.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  sel.value = cur;
+
+  let list = DB.achievements.filter(a => {
+    const ms = !search || a.title.toLowerCase().includes(search) || a.empName.toLowerCase().includes(search);
+    const me = !empId || a.empId === empId;
+    const mt = !type || a.type === type;
+    return ms && me && mt;
+  }).reverse();
+
+  const cont = document.getElementById('achieve-grid');
+  if (!list.length) {
+    cont.innerHTML = '<div style="grid-column:1/-1"><div class="empty-state"><div class="empty-icon">🏆</div><h3>لا توجد إنجازات</h3><p>ابدأ بتسجيل إنجازات الموظفين</p></div></div>';
+    return;
+  }
+  cont.innerHTML = list.map(a => `
+    <div class="achieve-card" style="position:relative">
+      <div style="position:absolute;top:10px;left:10px;display:flex;gap:6px">
+        <button class="btn btn-danger btn-icon btn-sm" onclick="deleteAchievement('${a.id}')" title="حذف" style="background:rgba(255,255,255,0.15);border:none;color:#fff">🗑️</button>
+      </div>
+      <div class="achieve-icon">${achieveIcons[a.type]||'📌'}</div>
+      <div class="achieve-title">${a.title}</div>
+      <div class="achieve-sub">👤 ${a.empName}</div>
+      <div class="achieve-sub" style="margin-top:4px">${achieveLabels[a.type]||a.type}</div>
+      ${a.desc?`<div class="achieve-sub" style="margin-top:6px;font-style:italic">"${a.desc}"</div>`:''}
+      <div class="achieve-date">📅 ${a.date||''}</div>
+    </div>
+  `).join('');
+}
+
+// ===== FILES =====
+function handleFileUpload(files) {
+  const cat = document.getElementById('file-category').value;
+  const note = document.getElementById('file-note').value.trim();
+  Array.from(files).forEach(f => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const obj = {
+        id: genId(),
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        category: cat,
+        note,
+        date: todayStr(),
+        data: e.target.result
+      };
+      DB.files.push(obj);
+      saveDB();
+      renderFiles();
+      addActivity('📁', `تم رفع ملف: ${f.name}`, 'info');
+      toast('تم رفع الملف بنجاح', 'success');
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function downloadFile(id) {
+  const f = DB.files.find(x => x.id === id);
+  if (!f) return;
+  const a = document.createElement('a');
+  a.href = f.data;
+  a.download = f.name;
+  a.click();
+}
+
+function deleteFile(id) {
+  if (!confirm('حذف هذا الملف؟')) return;
+  DB.files = DB.files.filter(x => x.id !== id);
+  saveDB(); renderFiles();
+  toast('تم حذف الملف', 'danger');
+}
+
+// ===== FILE EDITING =====
+let currentEditFile = null; // { id, type: 'general' | 'emp', empId?, newData? }
+
+const GENERAL_FILE_CATEGORIES = ['وثائق إدارية','تقارير','صور','عقود','محاضر','أخرى'];
+const EMP_FILE_CATEGORIES = ['عقد عمل','صورة هوية','السيرة الذاتية','المؤهلات والشهادات','الخطابات الإدارية','التقييمات','الإجازات','مستندات شخصية','أخرى'];
+
+function editFile(id) {
+  const f = DB.files.find(x => x.id === id);
+  if (!f) return;
+  currentEditFile = { id, type: 'general' };
+  openFileEditModal(f, GENERAL_FILE_CATEGORIES);
+}
+
+function editEmpFile(id) {
+  const f = (DB.empFiles || []).find(x => x.id === id);
+  if (!f) return;
+  currentEditFile = { id, type: 'emp', empId: f.empId };
+  openFileEditModal(f, EMP_FILE_CATEGORIES);
+}
+
+function openFileEditModal(f, categories) {
+  // Populate preview
+  document.getElementById('file-edit-icon').textContent = fileIcon(f.type);
+  document.getElementById('file-edit-current-name').textContent = f.name;
+  document.getElementById('file-edit-current-meta').textContent = `${formatSize(f.size)} | ${f.date}`;
+
+  // Populate form
+  document.getElementById('file-edit-name').value = f.name;
+  document.getElementById('file-edit-note').value = f.note || '';
+
+  // Populate categories
+  const catSel = document.getElementById('file-edit-category');
+  catSel.innerHTML = categories.map(c => `<option ${c === f.category ? 'selected' : ''}>${c}</option>`).join('');
+
+  // Reset replacement
+  document.getElementById('file-edit-replace-input').value = '';
+  document.getElementById('file-edit-replace-name').textContent = '';
+  if (currentEditFile) currentEditFile.newData = null;
+
+  openModal('file-edit-modal');
+}
+
+function handleFileReplace(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    if (!currentEditFile) return;
+    currentEditFile.newData = {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      data: e.target.result
+    };
+    document.getElementById('file-edit-replace-name').textContent = `✅ تم تحميل: ${file.name} (${formatSize(file.size)})`;
+    // Auto-fill name field if it wasn't changed from the original
+    const nameInput = document.getElementById('file-edit-name');
+    nameInput.value = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveFileEdit() {
+  if (!currentEditFile) return;
+  const newName = document.getElementById('file-edit-name').value.trim();
+  if (!newName) { toast('يرجى إدخال اسم الوثيقة', 'danger'); return; }
+
+  const updates = {
+    name: newName,
+    category: document.getElementById('file-edit-category').value,
+    note: document.getElementById('file-edit-note').value.trim()
+  };
+
+  // Apply file replacement if present
+  if (currentEditFile.newData) {
+    updates.size = currentEditFile.newData.size;
+    updates.type = currentEditFile.newData.type;
+    updates.data = currentEditFile.newData.data;
+    updates.date = todayStr();
+  }
+
+  if (currentEditFile.type === 'general') {
+    const idx = DB.files.findIndex(x => x.id === currentEditFile.id);
+    if (idx >= 0) DB.files[idx] = { ...DB.files[idx], ...updates };
+    saveDB();
+    renderFiles();
+    addActivity('✏️', `تم تعديل الملف: ${newName}`, 'info');
+  } else {
+    const idx = (DB.empFiles || []).findIndex(x => x.id === currentEditFile.id);
+    if (idx >= 0) DB.empFiles[idx] = { ...DB.empFiles[idx], ...updates };
+    saveDB();
+    renderEmpFiles(currentEditFile.empId);
+    addActivity('✏️', `تم تعديل وثيقة موظف: ${newName}`, 'info');
+  }
+
+  closeModal('file-edit-modal');
+  currentEditFile = null;
+  toast('تم حفظ التعديلات', 'success');
+}
+
+function renderFiles() {
+  const search = document.getElementById('file-search').value.toLowerCase();
+  const cat = document.getElementById('file-filter').value;
+  let list = DB.files.filter(f => {
+    const ms = !search || f.name.toLowerCase().includes(search);
+    const mc = !cat || f.category === cat;
+    return ms && mc;
+  }).reverse();
+
+  const cont = document.getElementById('file-list');
+  if (!list.length) {
+    cont.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><p>لا توجد ملفات محفوظة</p></div>';
+    return;
+  }
+  cont.innerHTML = list.map(f => `
+    <div class="file-item">
+      <div class="file-icon">${fileIcon(f.type)}</div>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">${f.category} | ${formatSize(f.size)} | ${f.date}${f.note?' | '+f.note:''}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-info btn-sm" onclick="downloadFile('${f.id}')" title="تحميل">⬇️</button>
+        <button class="btn btn-outline btn-sm" onclick="editFile('${f.id}')" title="تعديل">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteFile('${f.id}')" title="حذف">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Drag and drop
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragging');
+  handleFileUpload(e.dataTransfer.files);
+});
+
+// ===== DASHBOARD =====
+let currentTimelineFilter = 'all';
+
+function filterTimeline(f) {
+  currentTimelineFilter = f;
+  document.querySelectorAll('.timeline-filter').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`.timeline-filter[data-tf="${f}"]`);
+  if (btn) btn.classList.add('active');
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const cont = document.getElementById('timeline-container');
+  if (!cont) return;
+
+  const today = todayStr();
+  const now = new Date(today);
+  const weekEnd = new Date(now); weekEnd.setDate(now.getDate() + 7);
+  const weekEndStr = weekEnd.toISOString().slice(0,10);
+
+  // Only tasks with a due date
+  let tasks = DB.tasks.filter(t => t.due);
+
+  // Apply filter
+  if (currentTimelineFilter === 'today') {
+    tasks = tasks.filter(t => t.due === today);
+  } else if (currentTimelineFilter === 'week') {
+    tasks = tasks.filter(t => t.due >= today && t.due <= weekEndStr);
+  } else if (currentTimelineFilter === 'overdue') {
+    tasks = tasks.filter(t => t.due < today && t.status !== 'completed' && t.status !== 'cancelled');
+  } else if (currentTimelineFilter === 'upcoming') {
+    tasks = tasks.filter(t => t.due >= today);
+  }
+
+  if (!tasks.length) {
+    cont.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-icon">📅</div><h3>لا توجد مهام في هذا النطاق</h3><p>أضف مهام مع تواريخ استحقاق لعرضها في الخط الزمني</p></div>';
+    return;
+  }
+
+  // Sort by due date ascending
+  tasks.sort((a,b) => a.due.localeCompare(b.due));
+
+  // Group by date
+  const groups = {};
+  tasks.forEach(t => {
+    if (!groups[t.due]) groups[t.due] = [];
+    groups[t.due].push(t);
+  });
+
+  const sortedDates = Object.keys(groups).sort();
+
+  cont.innerHTML = `<div class="timeline">` + sortedDates.map(date => {
+    const items = groups[date];
+    const dateObj = new Date(date);
+    const dateLabel = dateObj.toLocaleDateString('ar-SA', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+    let badge = '';
+    if (date === today) badge = '<span class="timeline-date-badge badge-info">اليوم</span>';
+    else if (date < today) badge = '<span class="timeline-date-badge badge-danger">متأخر</span>';
+    else {
+      const diffDays = Math.ceil((dateObj - now) / (1000*60*60*24));
+      if (diffDays <= 7) badge = `<span class="timeline-date-badge badge-warning">خلال ${diffDays} أيام</span>`;
+      else badge = `<span class="timeline-date-badge badge-success">خلال ${diffDays} يوماً</span>`;
+    }
+
+    return `
+      <div class="timeline-group">
+        <div class="timeline-group-header">
+          <div class="timeline-date">${dateLabel}</div>
+          ${badge}
+          <span style="color:var(--text-muted);font-size:.78rem">(${items.length} مهمة)</span>
+        </div>
+        ${items.map(t => {
+          const isOverdue = t.due < today && t.status !== 'completed' && t.status !== 'cancelled';
+          const isCompleted = t.status === 'completed';
+          const classes = [
+            'timeline-item',
+            `priority-${t.priority||'medium'}`,
+            isOverdue ? 'overdue' : '',
+            isCompleted ? 'completed' : ''
+          ].filter(Boolean).join(' ');
+          return `
+            <div class="${classes}">
+              <div class="timeline-item-header">
+                <div class="timeline-item-title">${isCompleted?'✅ ':''}${t.title}</div>
+                <span class="badge ${taskStatusBadge(t.status)}" style="font-size:.7rem">${taskStatusLabel(t.status)}</span>
+              </div>
+              <div class="timeline-item-meta">
+                <span class="badge ${priorityBadge(t.priority)}" style="font-size:.7rem">${priorityLabel(t.priority)}</span>
+                ${t.assignName?`<span>👤 ${t.assignName}</span>`:''}
+                ${t.progress>0?`<span>📊 ${t.progress}%</span>`:''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }).join('') + `</div>`;
+}
+
+function renderDashboard() {
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('ar-SA', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('dash-emp').textContent = DB.employees.length;
+  const active = DB.tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
+  const done = DB.tasks.filter(t => t.status === 'completed');
+  const today = todayStr();
+  const late = DB.tasks.filter(t => t.due && t.due < today && t.status !== 'completed' && t.status !== 'cancelled');
+  document.getElementById('dash-tasks').textContent = active.length;
+  document.getElementById('dash-done').textContent = done.length;
+  document.getElementById('dash-late-tasks').textContent = late.length;
+
+  // Activities
+  const act = (DB.activities || []).slice(-8).reverse();
+  document.getElementById('activity-list').innerHTML = act.length
+    ? act.map(a => `
+      <div class="activity-item">
+        <div class="activity-dot" style="background:${a.type==='success'?'#d5f5e3':a.type==='danger'?'#fadbd8':'#d6eaf8'}">${a.icon}</div>
+        <div>
+          <div class="activity-text">${a.text}</div>
+          <div class="activity-time">🕐 ${a.time}</div>
+        </div>
+      </div>
+    `).join('')
+    : '<div class="empty-state"><div class="empty-icon">📭</div><p>لا توجد نشاطات</p></div>';
+
+  // Urgent tasks
+  const urgent = DB.tasks.filter(t => t.priority==='high' && t.status!=='completed' && t.status!=='cancelled').slice(0,5);
+  document.getElementById('urgent-tasks').innerHTML = urgent.length
+    ? urgent.map(t=>`
+      <div class="task-card priority-high" style="margin-bottom:10px">
+        <div class="task-title">${t.title}</div>
+        <div class="task-meta">
+          ${t.assignName?`<span class="task-assign">👤 ${t.assignName}</span>`:''}
+          ${t.due?`<span class="task-assign">📅 ${t.due}</span>`:''}
+        </div>
+      </div>
+    `).join('')
+    : '<div class="empty-state" style="padding:30px"><div class="empty-icon">✅</div><p>لا توجد مهام عاجلة</p></div>';
+
+  // Timeline
+  renderTimeline();
+
+  // Team performance
+  const cont = document.getElementById('team-perf-grid');
+  if (!DB.employees.length) { cont.innerHTML = '<p style="color:var(--text-muted);font-size:.9rem">أضف موظفين لعرض الأداء</p>'; return; }
+  cont.innerHTML = DB.employees.slice(0,8).map(e => {
+    const t = DB.tasks.filter(x=>x.assignId===e.id);
+    const d = t.filter(x=>x.status==='completed');
+    const pct = t.length ? Math.round(d.length/t.length*100) : 0;
+    return `
+      <div style="text-align:center;padding:14px;background:#f7fafc;border-radius:12px">
+        <div class="emp-avatar" style="width:48px;height:48px;font-size:1.1rem;margin:0 auto 8px;${e.photo?`background-image:url(${e.photo});background-size:cover;background-position:center;color:transparent`:''}">${e.name.charAt(0)}</div>
+        <div style="font-size:.82rem;font-weight:600;color:var(--primary);margin-bottom:4px">${e.name.split(' ')[0]}</div>
+        <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">${t.length} مهام</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:.75rem;color:var(--primary);font-weight:700;margin-top:4px">${pct}%</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== REPORTS =====
+function showReportTab(id) {
+  ['emp-report','task-report','achieve-report','att-report'].forEach(r => {
+    document.getElementById(r).style.display = 'none';
+  });
+  document.getElementById(id).style.display = 'block';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event && event.target.classList.add('active');
+}
+
+// ===== DATE RANGE HELPERS FOR REPORTS =====
+function getPeriodRange(period) {
+  const today = new Date();
+  const t = todayStr();
+  let from = '', to = '';
+
+  if (period === 'today') {
+    from = to = t;
+  } else if (period === 'week') {
+    const d = new Date(today);
+    const day = d.getDay();
+    // Saudi week: Sunday(0) to Thursday(4), or Saturday start
+    const diffToSaturday = (day + 1) % 7;
+    const start = new Date(d); start.setDate(d.getDate() - diffToSaturday);
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    from = start.toISOString().slice(0,10);
+    to = end.toISOString().slice(0,10);
+  } else if (period === 'month') {
+    from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+    to = new Date(today.getFullYear(), today.getMonth()+1, 0).toISOString().slice(0,10);
+  } else if (period === 'quarter') {
+    const q = Math.floor(today.getMonth() / 3);
+    from = new Date(today.getFullYear(), q*3, 1).toISOString().slice(0,10);
+    to = new Date(today.getFullYear(), q*3+3, 0).toISOString().slice(0,10);
+  } else if (period === 'year') {
+    from = `${today.getFullYear()}-01-01`;
+    to = `${today.getFullYear()}-12-31`;
+  }
+  return { from, to };
+}
+
+function setTaskReportPeriod() {
+  const period = document.getElementById('task-report-period').value;
+  const fromInp = document.getElementById('task-report-from');
+  const toInp = document.getElementById('task-report-to');
+  if (period === 'all') {
+    fromInp.value = ''; toInp.value = '';
+    fromInp.disabled = false; toInp.disabled = false;
+  } else if (period === 'custom') {
+    fromInp.disabled = false; toInp.disabled = false;
+  } else {
+    const r = getPeriodRange(period);
+    fromInp.value = r.from; toInp.value = r.to;
+    fromInp.disabled = true; toInp.disabled = true;
+  }
+  renderReports();
+}
+
+function setAchieveReportPeriod() {
+  const period = document.getElementById('achieve-report-period').value;
+  const fromInp = document.getElementById('achieve-report-from');
+  const toInp = document.getElementById('achieve-report-to');
+  if (period === 'all') {
+    fromInp.value = ''; toInp.value = '';
+    fromInp.disabled = false; toInp.disabled = false;
+  } else if (period === 'custom') {
+    fromInp.disabled = false; toInp.disabled = false;
+  } else {
+    const r = getPeriodRange(period);
+    fromInp.value = r.from; toInp.value = r.to;
+    fromInp.disabled = true; toInp.disabled = true;
+  }
+  renderReports();
+}
+
+function clearTaskReportDates() {
+  document.getElementById('task-report-period').value = 'all';
+  document.getElementById('task-report-from').value = '';
+  document.getElementById('task-report-to').value = '';
+  document.getElementById('task-report-from').disabled = false;
+  document.getElementById('task-report-to').disabled = false;
+  renderReports();
+}
+
+function clearAchieveReportDates() {
+  document.getElementById('achieve-report-period').value = 'all';
+  document.getElementById('achieve-report-from').value = '';
+  document.getElementById('achieve-report-to').value = '';
+  document.getElementById('achieve-report-from').disabled = false;
+  document.getElementById('achieve-report-to').disabled = false;
+  renderReports();
+}
+
+function formatArDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('ar-SA', {year:'numeric', month:'long', day:'numeric'});
+}
+
+function renderReports() {
+  const dt = new Date().toLocaleDateString('ar-SA', {year:'numeric',month:'long',day:'numeric'});
+  ['emp','task','achieve'].forEach(k => {
+    const el = document.getElementById(`report-date-${k}`);
+    if (el) el.textContent = `تاريخ التقرير: ${dt}`;
+  });
+
+  // Emp report
+  document.getElementById('emp-report-body').innerHTML = DB.employees.map((e,i)=>{
+    const empDepts = (e.depts && e.depts.length) ? e.depts : (e.dept ? [e.dept] : []);
+    return `
+    <tr>
+      <td>${i+1}</td><td><strong>${e.name}</strong></td><td>${empDepts.join('، ')||'-'}</td><td>${e.title}</td>
+      <td>${e.phone||'-'}</td>
+      <td><span class="badge ${statusBadge(e.status)}">${statusLabel(e.status)}</span></td>
+      <td>${e.hireDate||'-'}</td>
+      <td>${DB.tasks.filter(t=>t.assignId===e.id).length}</td>
+      <td>${DB.achievements.filter(a=>a.empId===e.id).length}</td>
+    </tr>
+  `;}).join('') || '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-muted)">لا يوجد بيانات</td></tr>';
+
+  // Task report - with date filter
+  const taskFrom = document.getElementById('task-report-from') ? document.getElementById('task-report-from').value : '';
+  const taskTo = document.getElementById('task-report-to') ? document.getElementById('task-report-to').value : '';
+  let taskList = [...DB.tasks];
+  if (taskFrom) taskList = taskList.filter(t => t.due && t.due >= taskFrom);
+  if (taskTo) taskList = taskList.filter(t => t.due && t.due <= taskTo);
+
+  // Task report range label
+  const tRangeEl = document.getElementById('task-report-range');
+  if (tRangeEl) {
+    if (taskFrom && taskTo) tRangeEl.textContent = `الفترة: من ${formatArDate(taskFrom)} إلى ${formatArDate(taskTo)}`;
+    else if (taskFrom) tRangeEl.textContent = `من ${formatArDate(taskFrom)}`;
+    else if (taskTo) tRangeEl.textContent = `حتى ${formatArDate(taskTo)}`;
+    else tRangeEl.textContent = 'جميع الفترات';
+  }
+
+  const tStats = document.getElementById('task-report-stats');
+  const byStatus = {pending:0,inprogress:0,completed:0,cancelled:0};
+  taskList.forEach(t=>{if(byStatus[t.status]!==undefined)byStatus[t.status]++;});
+  tStats.innerHTML = `
+    <div class="stat-card"><div class="stat-icon" style="background:#fdebd0">📋</div><div class="stat-info"><div class="val">${byStatus.pending}</div><div class="lbl">معلقة</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#d6eaf8">⚡</div><div class="stat-info"><div class="val">${byStatus.inprogress}</div><div class="lbl">جارية</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#d5f5e3">✅</div><div class="stat-info"><div class="val">${byStatus.completed}</div><div class="lbl">منجزة</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fadbd8">❌</div><div class="stat-info"><div class="val">${byStatus.cancelled}</div><div class="lbl">ملغاة</div></div></div>
+  `;
+  document.getElementById('task-report-body').innerHTML = taskList.map((t,i)=>`
+    <tr>
+      <td>${i+1}</td><td>${t.title}</td><td>${t.assignName||'-'}</td>
+      <td><span class="badge ${priorityBadge(t.priority)}">${priorityLabel(t.priority)}</span></td>
+      <td><span class="badge ${taskStatusBadge(t.status)}">${taskStatusLabel(t.status)}</span></td>
+      <td>${t.due||'-'}</td><td>${t.desc||'-'}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">لا يوجد مهام في هذه الفترة</td></tr>';
+
+  // Achieve report - with date filter
+  const achFrom = document.getElementById('achieve-report-from') ? document.getElementById('achieve-report-from').value : '';
+  const achTo = document.getElementById('achieve-report-to') ? document.getElementById('achieve-report-to').value : '';
+  let achList = [...DB.achievements];
+  if (achFrom) achList = achList.filter(a => a.date && a.date >= achFrom);
+  if (achTo) achList = achList.filter(a => a.date && a.date <= achTo);
+
+  const aRangeEl = document.getElementById('achieve-report-range');
+  if (aRangeEl) {
+    if (achFrom && achTo) aRangeEl.textContent = `الفترة: من ${formatArDate(achFrom)} إلى ${formatArDate(achTo)}`;
+    else if (achFrom) aRangeEl.textContent = `من ${formatArDate(achFrom)}`;
+    else if (achTo) aRangeEl.textContent = `حتى ${formatArDate(achTo)}`;
+    else aRangeEl.textContent = 'جميع الفترات';
+  }
+
+  document.getElementById('achieve-report-body').innerHTML = achList.map((a,i)=>`
+    <tr>
+      <td>${i+1}</td><td>${a.empName}</td><td>${a.title}</td>
+      <td>${achieveLabels[a.type]||a.type}</td><td>${a.date||'-'}</td><td>${a.desc||'-'}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">لا يوجد إنجازات في هذه الفترة</td></tr>';
+}
+
+function printReport() {
+  window.print();
+}
+
+// ===== HELPERS =====
+function populateEmpSelects() {
+  const selects = ['task-assign','achieve-emp'];
+  selects.forEach(sid => {
+    const el = document.getElementById(sid);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">-- اختر موظف --</option>' +
+      DB.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+    el.value = cur;
+  });
+}
+
+function addActivity(icon, text, type = 'info') {
+  if (!DB.activities) DB.activities = [];
+  DB.activities.push({
+    icon, text, type,
+    time: new Date().toLocaleTimeString('ar-SA')
+  });
+  if (DB.activities.length > 50) DB.activities = DB.activities.slice(-50);
+  saveDB();
+}
+
+function updateHeaderStats() {
+  document.getElementById('h-emp-count').textContent = DB.employees.length;
+  document.getElementById('h-task-count').textContent = DB.tasks.filter(t=>t.status!=='completed'&&t.status!=='cancelled').length;
+  document.getElementById('h-achieve-count').textContent = DB.achievements.length;
+}
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+
+function fileIcon(type) {
+  if (!type) return '📄';
+  if (type.includes('pdf')) return '📕';
+  if (type.includes('image')) return '🖼️';
+  if (type.includes('word') || type.includes('document')) return '📝';
+  if (type.includes('sheet') || type.includes('excel')) return '📊';
+  if (type.includes('video')) return '🎬';
+  if (type.includes('audio')) return '🎵';
+  return '📄';
+}
+
+function statusBadge(s) { return {active:'badge-success',leave:'badge-warning',inactive:'badge-danger'}[s]||'badge-primary'; }
+function statusLabel(s) { return {active:'نشط',leave:'إجازة',inactive:'غير نشط'}[s]||s; }
+function priorityBadge(p) { return {high:'badge-danger',medium:'badge-warning',low:'badge-success'}[p]||'badge-primary'; }
+function priorityLabel(p) { return {high:'عالية',medium:'متوسطة',low:'منخفضة'}[p]||p; }
+function taskStatusBadge(s) { return {pending:'badge-warning',inprogress:'badge-info',completed:'badge-success',cancelled:'badge-danger'}[s]||'badge-primary'; }
+function taskStatusLabel(s) { return {pending:'معلقة',inprogress:'جارية',completed:'منجزة',cancelled:'ملغاة'}[s]||s; }
+
+// ===== TOAST =====
+function toast(msg, type = 'success') {
+  const icons = { success:'✅', danger:'❌', warning:'⚠️', info:'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `${icons[type]||'ℹ️'} ${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.style.opacity = '0', 2500);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// Click outside modal to close
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// Import drop zone
+const importDz = document.getElementById('import-drop-zone');
+if (importDz) {
+  importDz.addEventListener('dragover', e => { e.preventDefault(); importDz.classList.add('dragging'); });
+  importDz.addEventListener('dragleave', () => importDz.classList.remove('dragging'));
+  importDz.addEventListener('drop', e => {
+    e.preventDefault(); importDz.classList.remove('dragging');
+    const file = e.dataTransfer.files[0];
+    if (file) importData(file);
+  });
+}
+
+// ===== SYNC / BACKUP =====
+function renderSync() {
+  // Summary
+  const summary = document.getElementById('sync-summary');
+  if (summary) {
+    summary.innerHTML = `
+      <div style="background:rgba(255,255,255,0.12);padding:14px;border-radius:10px;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;color:var(--accent)">${DB.employees.length}</div>
+        <div style="font-size:.8rem;opacity:.8">موظف</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.12);padding:14px;border-radius:10px;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;color:var(--accent)">${DB.tasks.length}</div>
+        <div style="font-size:.8rem;opacity:.8">مهمة</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.12);padding:14px;border-radius:10px;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;color:var(--accent)">${DB.achievements.length}</div>
+        <div style="font-size:.8rem;opacity:.8">إنجاز</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.12);padding:14px;border-radius:10px;text-align:center">
+        <div style="font-size:1.6rem;font-weight:800;color:var(--accent)">${(DB.files||[]).length + (DB.empFiles||[]).length}</div>
+        <div style="font-size:.8rem;opacity:.8">ملف</div>
+      </div>
+    `;
+  }
+
+  // Last export
+  const last = localStorage.getItem('emp_mgmt_last_export');
+  const lastEl = document.getElementById('sync-last-export');
+  if (lastEl) {
+    lastEl.textContent = last ? `🕐 آخر تصدير: ${last}` : '⚠️ لم يتم تصدير نسخة احتياطية بعد';
+  }
+
+  // Update filename
+  const fnEl = document.getElementById('export-filename');
+  if (fnEl) fnEl.textContent = `school_backup_${todayStr()}.json`;
+}
+
+function exportData() {
+  const payload = {
+    app: 'Othman Ibn Affan School - Employee Management',
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    data: DB
+  };
+
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const fileName = `school_backup_${todayStr()}.json`;
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  // Save last export time
+  const now = new Date().toLocaleString('ar-SA');
+  localStorage.setItem('emp_mgmt_last_export', now);
+
+  addActivity('📤', 'تم تصدير نسخة احتياطية', 'success');
+  renderSync();
+  toast('تم تنزيل النسخة الاحتياطية بنجاح', 'success');
+}
+
+function importData(file) {
+  if (!file) return;
+  if (!file.name.endsWith('.json')) { toast('يجب أن يكون الملف بصيغة json', 'danger'); return; }
+
+  const merge = document.getElementById('import-merge').checked;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.data || typeof parsed.data !== 'object') {
+        toast('الملف غير صالح أو تالف', 'danger');
+        return;
+      }
+      const imported = parsed.data;
+
+      if (merge) {
+        // Merge: add only new items (by id)
+        const mergeArr = (localArr, importArr) => {
+          const existingIds = new Set((localArr||[]).map(x => x.id));
+          const newItems = (importArr||[]).filter(x => !existingIds.has(x.id));
+          return [...(localArr||[]), ...newItems];
+        };
+        DB.employees = mergeArr(DB.employees, imported.employees);
+        DB.tasks = mergeArr(DB.tasks, imported.tasks);
+        DB.achievements = mergeArr(DB.achievements, imported.achievements);
+        DB.files = mergeArr(DB.files, imported.files);
+        DB.empFiles = mergeArr(DB.empFiles, imported.empFiles);
+        DB.activities = mergeArr(DB.activities, imported.activities);
+
+        const msg = `تم دمج البيانات:
+- الموظفون: ${DB.employees.length}
+- المهام: ${DB.tasks.length}
+- الإنجازات: ${DB.achievements.length}
+- الملفات: ${(DB.files||[]).length + (DB.empFiles||[]).length}`;
+        saveDB();
+        updateHeaderStats();
+        renderSync();
+        addActivity('📥', 'تم دمج نسخة احتياطية', 'success');
+        alert(msg);
+        toast('تم دمج البيانات بنجاح', 'success');
+      } else {
+        // Replace
+        if (!confirm('⚠️ تحذير: سيتم استبدال جميع البيانات الحالية على هذا الجهاز بالبيانات الموجودة في الملف.\n\nهل أنت متأكد؟')) return;
+
+        DB = {
+          employees: imported.employees || [],
+          tasks: imported.tasks || [],
+          achievements: imported.achievements || [],
+          files: imported.files || [],
+          empFiles: imported.empFiles || [],
+          activities: imported.activities || [],
+          departments: (imported.departments && imported.departments.length) ? imported.departments : [...DEFAULT_DEPARTMENTS]
+        };
+        saveDB();
+        updateHeaderStats();
+        renderSync();
+        addActivity('📥', 'تم استيراد نسخة احتياطية (استبدال)', 'success');
+        toast('تم استيراد البيانات بنجاح', 'success');
+      }
+
+      // Reset file input
+      document.getElementById('import-file-input').value = '';
+    } catch (err) {
+      toast('فشل قراءة الملف: ' + err.message, 'danger');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData() {
+  const confirm1 = confirm('⚠️ سيتم حذف جميع البيانات من هذا الجهاز (الموظفون، المهام، الإنجازات، الملفات).\n\nهل تريد المتابعة؟');
+  if (!confirm1) return;
+  const confirm2 = prompt('للتأكيد، اكتب كلمة: حذف');
+  if (confirm2 !== 'حذف') { toast('تم الإلغاء', 'warning'); return; }
+
+  DB = {
+    employees: [], tasks: [], achievements: [],
+    files: [], empFiles: [], activities: [],
+    departments: [...DEFAULT_DEPARTMENTS]
+  };
+  saveDB();
+  updateHeaderStats();
+  renderSync();
+  toast('تم حذف جميع البيانات', 'danger');
+}
+
+// ===== INIT =====
+loadDB();
+updateHeaderStats();
+populateDeptSelects();
+renderDashboard();
+document.getElementById('dash-date').textContent = new Date().toLocaleDateString('ar-SA', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// ===== PWA - Service Worker =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('✅ Service Worker registered'))
+      .catch(err => console.log('❌ SW registration failed', err));
+  });
+}
+
+// ===== PWA - Install Prompt =====
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (localStorage.getItem('emp_mgmt_install_dismissed')) return;
+  const banner = document.createElement('div');
+  banner.id = 'pwa-install-banner';
+  banner.innerHTML = `
+    <div style="position:fixed;bottom:16px;right:16px;left:16px;background:linear-gradient(135deg,#1a3a5c,#0d2440);color:#fff;padding:14px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.3);z-index:9998;display:flex;align-items:center;gap:12px;max-width:500px;margin:0 auto">
+      <div style="font-size:1.8rem">📲</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.95rem">تثبيت التطبيق</div>
+        <div style="font-size:.78rem;opacity:.85">استخدم البرنامج كتطبيق مستقل على جهازك</div>
+      </div>
+      <button onclick="installPWA()" style="background:#c8a96e;color:#1a2a3a;border:none;padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem">تثبيت</button>
+      <button onclick="dismissInstall()" style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:.9rem">✕</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+}
+
+async function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('pwa-install-banner')?.remove();
+  if (outcome === 'accepted') toast('تم تثبيت التطبيق بنجاح!', 'success');
+}
+
+function dismissInstall() {
+  localStorage.setItem('emp_mgmt_install_dismissed', '1');
+  document.getElementById('pwa-install-banner')?.remove();
+}
+</script>
+</body>
+</html>
