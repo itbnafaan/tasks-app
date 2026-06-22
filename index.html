@@ -1810,7 +1810,21 @@ tbody td { padding: 11px 14px; vertical-align: middle; }
 <!-- Toast -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ===== إعداد المزامنة السحابية (Supabase) =====
+const SUPABASE_URL = 'https://kirfodiouhrxnhxvkdvf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50';
+const CLOUD_ROW_ID = 'main';
+let supa = null;
+let cloudReady = false;
+let applyingRemote = false;   // يمنع حلقة الحفظ عند استقبال تحديث من جهاز آخر
+let cloudSaveTimer = null;
+try {
+  if (window.supabase) supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e) { console.warn('Supabase init failed', e); }
+
 // ===== DATA =====
 let DB = {
   employees: [],
@@ -1887,6 +1901,95 @@ function loadDB() {
 
 function saveDB() {
   localStorage.setItem('emp_mgmt_db', JSON.stringify(DB));
+  cloudSave();
+}
+
+// رفع البيانات إلى السحابة (بتأخير بسيط لتجميع التعديلات المتتالية)
+function cloudSave() {
+  if (!supa || applyingRemote) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(async () => {
+    try {
+      setCloudStatus('saving');
+      const { error } = await supa.from('app_data').upsert({
+        id: CLOUD_ROW_ID,
+        data: DB,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      cloudReady = true;
+      setCloudStatus('synced');
+    } catch (e) {
+      console.warn('Cloud save error', e);
+      setCloudStatus('offline');
+    }
+  }, 700);
+}
+
+// تحميل البيانات من السحابة
+async function cloudLoad() {
+  if (!supa) return false;
+  try {
+    const { data, error } = await supa.from('app_data')
+      .select('data').eq('id', CLOUD_ROW_ID).maybeSingle();
+    if (error) throw error;
+    if (data && data.data) { DB = data.data; cloudReady = true; return true; }
+    return false; // لا يوجد سجل سحابي بعد
+  } catch (e) {
+    console.warn('Cloud load error', e);
+    return false;
+  }
+}
+
+// الاستماع الفوري لتغييرات الأجهزة الأخرى
+function cloudSubscribe() {
+  if (!supa) return;
+  supa.channel('app_data_changes')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'app_data', filter: 'id=eq.' + CLOUD_ROW_ID },
+      (payload) => {
+        if (payload.new && payload.new.data) {
+          applyingRemote = true;
+          DB = payload.new.data;
+          try { localStorage.setItem('emp_mgmt_db', JSON.stringify(DB)); } catch(e){}
+          rerenderCurrent();
+          applyingRemote = false;
+          setCloudStatus('synced');
+        }
+      })
+    .subscribe();
+}
+
+// مؤشر حالة المزامنة (شارة عائمة)
+function setCloudStatus(state) {
+  const el = document.getElementById('cloud-status');
+  if (!el) return;
+  const map = {
+    synced:  { t:'☁️ متزامن',        c:'#16a34a' },
+    saving:  { t:'⏳ يحفظ...',        c:'#d97706' },
+    offline: { t:'⚠️ يعمل محلياً',     c:'#dc2626' },
+    loading: { t:'⏳ جارٍ التحميل...', c:'#d97706' }
+  };
+  const s = map[state] || map.offline;
+  el.textContent = s.t;
+  el.style.color = s.c;
+}
+
+// إعادة رسم القسم المعروض حالياً بعد تحديث البيانات
+function rerenderCurrent() {
+  try {
+    updateHeaderStats();
+    populateDeptSelects();
+    const active = document.querySelector('.section.active');
+    const id = active ? active.id.replace('sec-','') : 'dashboard';
+    if (id === 'dashboard') renderDashboard();
+    else if (id === 'employees') renderEmployees();
+    else if (id === 'tasks') renderTasks();
+    else if (id === 'achievements') renderAchievements();
+    else if (id === 'files') renderFiles();
+    else if (id === 'reports') renderReports();
+    else if (id === 'sync') renderSync();
+  } catch(e) { console.warn(e); }
 }
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -3742,11 +3845,53 @@ function clearAllData() {
 }
 
 // ===== INIT =====
-loadDB();
-updateHeaderStats();
-populateDeptSelects();
-renderDashboard();
-document.getElementById('dash-date').textContent = new Date().toLocaleDateString('ar-SA', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+async function initApp() {
+  // شارة حالة المزامنة
+  if (!document.getElementById('cloud-status')) {
+    const badge = document.createElement('div');
+    badge.id = 'cloud-status';
+    badge.style.cssText = 'position:fixed;bottom:14px;left:14px;z-index:9999;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:6px 12px;font-size:.8rem;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);font-family:inherit';
+    document.body.appendChild(badge);
+  }
+  setCloudStatus('loading');
+
+  // 1) اعرض النسخة المحلية فوراً (سرعة + عمل دون انترنت)
+  loadDB();
+  updateHeaderStats();
+  populateDeptSelects();
+  renderDashboard();
+  const dEl = document.getElementById('dash-date');
+  if (dEl) dEl.textContent = new Date().toLocaleDateString('ar-SA', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // 2) ثم زامن مع السحابة
+  if (supa) {
+    const found = await cloudLoad();
+    if (found) {
+      // أكمل أي حقول ناقصة
+      if (!DB.employees) DB.employees = [];
+      if (!DB.tasks) DB.tasks = [];
+      if (!DB.achievements) DB.achievements = [];
+      if (!DB.files) DB.files = [];
+      if (!DB.empFiles) DB.empFiles = [];
+      if (!DB.activities) DB.activities = [];
+      if (!DB.departments || !DB.departments.length) DB.departments = [...DEFAULT_DEPARTMENTS];
+      try { localStorage.setItem('emp_mgmt_db', JSON.stringify(DB)); } catch(e){}
+      rerenderCurrent();
+      setCloudStatus('synced');
+    } else {
+      // لا توجد بيانات سحابية بعد → ارفع البيانات الحالية كأساس أول مرة
+      try {
+        await supa.from('app_data').upsert({ id: CLOUD_ROW_ID, data: DB, updated_at: new Date().toISOString() });
+        cloudReady = true;
+        setCloudStatus('synced');
+      } catch(e) { console.warn(e); setCloudStatus('offline'); }
+    }
+    cloudSubscribe();
+  } else {
+    setCloudStatus('offline');
+  }
+}
+initApp();
 
 // ===== PWA - Service Worker =====
 if ('serviceWorker' in navigator) {
