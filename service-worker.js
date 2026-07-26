@@ -1,8 +1,10 @@
-// Service Worker - نظام إدارة الموظفين
-const CACHE_NAME = 'school-emp-v1';
+// Service Worker - المنظومة المدرسية الشاملة
+const CACHE_NAME = 'school-system-v2';
 const ASSETS = [
   './',
   './index.html',
+  './style.css',
+  './app.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
