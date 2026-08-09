@@ -1,0 +1,106 @@
+{
+  "name": "2 - التقرير اليومي للإدارة عبر البريد",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 13,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-620, 0],
+      "id": "a2000000-0000-4000-8000-000000000001",
+      "name": "كل يوم الساعة 13:30"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "b1", "name": "adminEmails", "type": "string", "value": "principal@example.com" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-400, 0],
+      "id": "a2000000-0000-4000-8000-000000000002",
+      "name": "إعدادات المستلمين (عدّل هنا)"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://kirfodiouhrxnhxvkdvf.supabase.co/rest/v1/app_data?id=eq.main&select=data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 0],
+      "id": "a2000000-0000-4000-8000-000000000003",
+      "name": "جلب بيانات النظام (Supabase)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const httpItem = $('جلب بيانات النظام (Supabase)').first().json;\nconst row = Array.isArray(httpItem) ? httpItem[0] : httpItem;\nconst data = row && row.data ? row.data : row;\nconst adminEmails = $('إعدادات المستلمين (عدّل هنا)').first().json.adminEmails;\n\nconst today = new Date().toISOString().slice(0, 10);\n\nlet absentToday = 0, lateToday = 0, partialToday = 0;\nObject.keys(data.attendance || {}).forEach(k => {\n  if (!k.startsWith(today + '|')) return;\n  Object.values(data.attendance[k]).forEach(v => {\n    if (v.day === 'absent') absentToday++;\n    if (v.day === 'late') lateToday++;\n    if (v.periods && v.periods.some(p => p === 'غ')) partialToday++;\n  });\n});\n\nconst visitorsToday = (data.visitors || []).filter(v => v.date === today).length;\nconst lateArrivalsToday = (data.lateArrivals || []).filter(v => v.date === today).length;\nconst earlyLeavesToday = (data.earlyLeaves || []).filter(v => v.date === today).length;\nconst openCases = (data.counselCases || []).filter(c => c.status !== 'مغلقة').length;\nconst runningTasks = (data.tasks || []).filter(t => t.status === 'جارية').length;\n\nconst teacherAbsencesToday = (data.teacherAbsences || []).filter(a => a.date === today);\nlet lostToday = 0;\nteacherAbsencesToday.forEach(a => {\n  const covered = Object.values(a.covers || {}).filter(Boolean).length;\n  lostToday += Math.max(0, (a.missing || 0) - covered);\n});\n\nconst rows = [\n  ['غائبو اليوم', absentToday],\n  ['المتأخرون (حضور يومي)', lateToday],\n  ['تأخر صباحي (سجل التأخر)', lateArrivalsToday],\n  ['غياب جزئي (حصص)', partialToday],\n  ['الزوار اليوم', visitorsToday],\n  ['الاستئذان والخروج المبكر', earlyLeavesToday],\n  ['حالات إرشادية مفتوحة', openCases],\n  ['مهام جارية', runningTasks],\n  ['معلمون غائبون اليوم', teacherAbsencesToday.length],\n  ['الفاقد التعليمي غير المسدود (حصص)', lostToday]\n];\n\nconst html = `\n<h2>التقرير اليومي - ${data.settings ? data.settings.schoolName : ''} - ${today}</h2>\n<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" style=\"border-collapse:collapse;font-family:sans-serif\">\n<tr><th>المؤشر</th><th>القيمة</th></tr>\n${rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}\n</table>`;\n\nreturn [{ json: { html, today, adminEmails, schoolName: data.settings ? data.settings.schoolName : '' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 0],
+      "id": "a2000000-0000-4000-8000-000000000004",
+      "name": "حساب مؤشرات اليوم"
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@example.com",
+        "toEmail": "={{$json.adminEmails}}",
+        "subject": "=التقرير اليومي - {{$json.today}} - {{$json.schoolName}}",
+        "html": "={{$json.html}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [260, 0],
+      "id": "a2000000-0000-4000-8000-000000000005",
+      "name": "إرسال التقرير بالبريد",
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "School SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "كل يوم الساعة 13:30": {
+      "main": [[{ "node": "إعدادات المستلمين (عدّل هنا)", "type": "main", "index": 0 }]]
+    },
+    "إعدادات المستلمين (عدّل هنا)": {
+      "main": [[{ "node": "جلب بيانات النظام (Supabase)", "type": "main", "index": 0 }]]
+    },
+    "جلب بيانات النظام (Supabase)": {
+      "main": [[{ "node": "حساب مؤشرات اليوم", "type": "main", "index": 0 }]]
+    },
+    "حساب مؤشرات اليوم": {
+      "main": [[{ "node": "إرسال التقرير بالبريد", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Riyadh" },
+  "pinData": {}
+}
