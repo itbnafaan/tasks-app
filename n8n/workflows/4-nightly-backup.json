@@ -1,0 +1,92 @@
+{
+  "name": "4 - نسخ احتياطي ليلي للبيانات",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 2,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-400, 0],
+      "id": "a4000000-0000-4000-8000-000000000001",
+      "name": "كل يوم الساعة 02:00"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://kirfodiouhrxnhxvkdvf.supabase.co/rest/v1/app_data?id=eq.main&select=data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 0],
+      "id": "a4000000-0000-4000-8000-000000000002",
+      "name": "جلب بيانات النظام (Supabase)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const httpItem = $input.first().json;\nconst row = Array.isArray(httpItem) ? httpItem[0] : httpItem;\nconst data = row && row.data ? row.data : row;\nreturn [{ json: { data, created_at: new Date().toISOString() } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 0],
+      "id": "a4000000-0000-4000-8000-000000000003",
+      "name": "تجهيز حزمة النسخ الاحتياطي"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kirfodiouhrxnhxvkdvf.supabase.co/rest/v1/app_data_backups",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { data: $json.data, created_at: $json.created_at } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0],
+      "id": "a4000000-0000-4000-8000-000000000004",
+      "name": "حفظ نسخة في جدول app_data_backups"
+    }
+  ],
+  "connections": {
+    "كل يوم الساعة 02:00": {
+      "main": [[{ "node": "جلب بيانات النظام (Supabase)", "type": "main", "index": 0 }]]
+    },
+    "جلب بيانات النظام (Supabase)": {
+      "main": [[{ "node": "تجهيز حزمة النسخ الاحتياطي", "type": "main", "index": 0 }]]
+    },
+    "تجهيز حزمة النسخ الاحتياطي": {
+      "main": [[{ "node": "حفظ نسخة في جدول app_data_backups", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Riyadh" },
+  "pinData": {}
+}

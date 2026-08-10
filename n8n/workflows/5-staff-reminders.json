@@ -1,0 +1,106 @@
+{
+  "name": "5 - تذكيرات داخلية للموظفين (مهام، متابعات، سد انتظار)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 7,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-620, 0],
+      "id": "a5000000-0000-4000-8000-000000000001",
+      "name": "كل يوم الساعة 07:30"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "b1", "name": "staffEmails", "type": "string", "value": "principal@example.com,agent1@example.com" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-400, 0],
+      "id": "a5000000-0000-4000-8000-000000000002",
+      "name": "إعدادات المستلمين (عدّل هنا)"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://kirfodiouhrxnhxvkdvf.supabase.co/rest/v1/app_data?id=eq.main&select=data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 0],
+      "id": "a5000000-0000-4000-8000-000000000003",
+      "name": "جلب بيانات النظام (Supabase)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const httpItem = $('جلب بيانات النظام (Supabase)').first().json;\nconst row = Array.isArray(httpItem) ? httpItem[0] : httpItem;\nconst data = row && row.data ? row.data : row;\nconst staffEmails = $('إعدادات المستلمين (عدّل هنا)').first().json.staffEmails;\n\nconst today = new Date().toISOString().slice(0, 10);\n\nconst dueTasks = (data.tasks || []).filter(t => t.due === today && t.status !== 'مكتملة');\nconst overdueTasks = (data.tasks || []).filter(t => t.due && t.due < today && t.status !== 'مكتملة');\nconst followUps = (data.counselCases || []).filter(c => c.followDate === today && c.status !== 'مغلقة');\n\nconst teacherAbsencesToday = (data.teacherAbsences || []).filter(a => a.date === today);\nconst uncovered = teacherAbsencesToday.map(a => {\n  const covered = Object.values(a.covers || {}).filter(Boolean).length;\n  const net = Math.max(0, (a.missing || 0) - covered);\n  return { empName: a.empName, type: a.type, missing: a.missing || 0, covered, net };\n}).filter(a => a.net > 0);\n\nconst section = (title, items, cols) => {\n  if (!items.length) return `<h3>${title}</h3><p>لا يوجد</p>`;\n  return `<h3>${title} (${items.length})</h3><ul>${items.map(cols).join('')}</ul>`;\n};\n\nconst html = `\n<h2>تذكيرات اليوم - ${today} - ${data.settings ? data.settings.schoolName : ''}</h2>\n${section('مهام مستحقة اليوم', dueTasks, t => `<li>${t.title} — مكلَّف: ${t.assignee}</li>`)}\n${section('مهام متأخرة', overdueTasks, t => `<li>${t.title} — مكلَّف: ${t.assignee} — الاستحقاق: ${t.due}</li>`)}\n${section('متابعات حالات إرشادية اليوم', followUps, c => `<li>الطالب: ${c.student}</li>`)}\n${section('حصص شاغرة تحتاج سداً اليوم', uncovered, a => `<li>${a.empName} (${a.type}) — متبقٍّ بلا تغطية: ${a.net} حصة</li>`)}\n`;\n\nreturn [{ json: { html, today, staffEmails, schoolName: data.settings ? data.settings.schoolName : '' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 0],
+      "id": "a5000000-0000-4000-8000-000000000004",
+      "name": "تجميع تذكيرات اليوم"
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@example.com",
+        "toEmail": "={{$json.staffEmails}}",
+        "subject": "=تذكيرات اليوم {{$json.today}} - {{$json.schoolName}}",
+        "html": "={{$json.html}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [260, 0],
+      "id": "a5000000-0000-4000-8000-000000000005",
+      "name": "إرسال التذكيرات",
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "School SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "كل يوم الساعة 07:30": {
+      "main": [[{ "node": "إعدادات المستلمين (عدّل هنا)", "type": "main", "index": 0 }]]
+    },
+    "إعدادات المستلمين (عدّل هنا)": {
+      "main": [[{ "node": "جلب بيانات النظام (Supabase)", "type": "main", "index": 0 }]]
+    },
+    "جلب بيانات النظام (Supabase)": {
+      "main": [[{ "node": "تجميع تذكيرات اليوم", "type": "main", "index": 0 }]]
+    },
+    "تجميع تذكيرات اليوم": {
+      "main": [[{ "node": "إرسال التذكيرات", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Riyadh" },
+  "pinData": {}
+}

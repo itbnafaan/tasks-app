@@ -1,0 +1,107 @@
+{
+  "name": "3 - التقرير الأسبوعي (حضور وفاقد تعليمي)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [4],
+              "triggerAtHour": 14,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-620, 0],
+      "id": "a3000000-0000-4000-8000-000000000001",
+      "name": "كل خميس الساعة 14:00"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "b1", "name": "agentsEmails", "type": "string", "value": "agent1@example.com,agent2@example.com,agent3@example.com" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-400, 0],
+      "id": "a3000000-0000-4000-8000-000000000002",
+      "name": "إعدادات المستلمين (عدّل هنا)"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://kirfodiouhrxnhxvkdvf.supabase.co/rest/v1/app_data?id=eq.main&select=data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 0],
+      "id": "a3000000-0000-4000-8000-000000000003",
+      "name": "جلب بيانات النظام (Supabase)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const httpItem = $('جلب بيانات النظام (Supabase)').first().json;\nconst row = Array.isArray(httpItem) ? httpItem[0] : httpItem;\nconst data = row && row.data ? row.data : row;\nconst agentsEmails = $('إعدادات المستلمين (عدّل هنا)').first().json.agentsEmails;\n\nconst todayD = new Date();\nconst to = todayD.toISOString().slice(0, 10);\nconst fromD = new Date(todayD); fromD.setDate(fromD.getDate() - 6);\nconst from = fromD.toISOString().slice(0, 10);\n\n// معدل الحضور لكل طالب خلال الأسبوع\nconst students = data.students || [];\nconst attRows = students.map(s => {\n  let absent = 0, excused = 0, late = 0, total = 0, present = 0;\n  Object.keys(data.attendance || {}).forEach(k => {\n    const d = k.split('|')[0];\n    if (d < from || d > to) return;\n    const r = data.attendance[k][s.id];\n    if (!r) return;\n    total++;\n    if (r.day === 'absent') absent++;\n    else if (r.day === 'excused') excused++;\n    else if (r.day === 'late') { late++; present++; }\n    else if (r.day === 'present') present++;\n  });\n  const rate = total ? Math.round((present / total) * 100) : 100;\n  return { name: s.name, grade: s.grade, section: s.section, absent, excused, late, rate };\n}).filter(r => r.absent + r.excused + r.late > 0)\n  .sort((a, b) => a.rate - b.rate);\n\n// الفاقد التعليمي لكل موظف خلال الأسبوع\nconst inRange = (data.teacherAbsences || []).filter(a => a.date >= from && a.date <= to);\nconst byEmp = {};\ninRange.forEach(a => {\n  if (!byEmp[a.empName]) byEmp[a.empName] = { fullDays: 0, late: 0, perm: 0, missing: 0, covered: 0 };\n  const b = byEmp[a.empName];\n  if (a.type === 'غياب يوم كامل') b.fullDays++;\n  if (a.type === 'تأخر صباحي') b.late++;\n  if (a.type === 'استئذان خروج مبكر') b.perm++;\n  b.missing += (a.missing || 0);\n  b.covered += Object.values(a.covers || {}).filter(Boolean).length;\n});\nconst lostRows = Object.keys(byEmp).map(name => {\n  const b = byEmp[name];\n  const net = Math.max(0, b.missing - b.covered);\n  const rate = b.missing ? Math.round((b.covered / b.missing) * 100) : 0;\n  return { name, ...b, net, rate };\n}).sort((a, b) => b.net - a.net);\n\nconst attTable = `<h3>معدل الحضور الأسبوعي (${from} إلى ${to}) - الطلاب الأكثر غياباً</h3>\n<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" style=\"border-collapse:collapse;font-family:sans-serif\">\n<tr><th>الطالب</th><th>الصف/الفصل</th><th>غياب</th><th>بعذر</th><th>تأخر</th><th>نسبة الحضور</th></tr>\n${attRows.slice(0, 25).map(r => `<tr><td>${r.name}</td><td>${r.grade}/${r.section}</td><td>${r.absent}</td><td>${r.excused}</td><td>${r.late}</td><td>${r.rate}%</td></tr>`).join('')}\n</table>`;\n\nconst lostTable = `<h3>تقرير الفاقد التعليمي الأسبوعي</h3>\n<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" style=\"border-collapse:collapse;font-family:sans-serif\">\n<tr><th>الموظف</th><th>غياب كامل</th><th>تأخر</th><th>استئذان</th><th>حصص مفقودة</th><th>حصص مسدودة</th><th>فاقد فعلي</th><th>نسبة السد</th></tr>\n${lostRows.map(r => `<tr><td>${r.name}</td><td>${r.fullDays}</td><td>${r.late}</td><td>${r.perm}</td><td>${r.missing}</td><td>${r.covered}</td><td>${r.net}</td><td>${r.rate}%</td></tr>`).join('')}\n</table>`;\n\nconst html = `<h2>التقرير الأسبوعي - ${data.settings ? data.settings.schoolName : ''}</h2>${attTable}${lostTable}`;\n\nreturn [{ json: { html, from, to, agentsEmails, schoolName: data.settings ? data.settings.schoolName : '' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 0],
+      "id": "a3000000-0000-4000-8000-000000000004",
+      "name": "حساب تقارير الأسبوع"
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@example.com",
+        "toEmail": "={{$json.agentsEmails}}",
+        "subject": "=التقرير الأسبوعي {{$json.from}} إلى {{$json.to}} - {{$json.schoolName}}",
+        "html": "={{$json.html}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [260, 0],
+      "id": "a3000000-0000-4000-8000-000000000005",
+      "name": "إرسال التقرير الأسبوعي",
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "School SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "كل خميس الساعة 14:00": {
+      "main": [[{ "node": "إعدادات المستلمين (عدّل هنا)", "type": "main", "index": 0 }]]
+    },
+    "إعدادات المستلمين (عدّل هنا)": {
+      "main": [[{ "node": "جلب بيانات النظام (Supabase)", "type": "main", "index": 0 }]]
+    },
+    "جلب بيانات النظام (Supabase)": {
+      "main": [[{ "node": "حساب تقارير الأسبوع", "type": "main", "index": 0 }]]
+    },
+    "حساب تقارير الأسبوع": {
+      "main": [[{ "node": "إرسال التقرير الأسبوعي", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Riyadh" },
+  "pinData": {}
+}

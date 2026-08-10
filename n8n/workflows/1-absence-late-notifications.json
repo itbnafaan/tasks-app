@@ -1,0 +1,86 @@
+{
+  "name": "1 - إشعارات غياب وتأخر الطلاب لأولياء الأمور",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 11,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-400, 0],
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "كل يوم الساعة 11:00"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://kirfodiouhrxnhxvkdvf.supabase.co/rest/v1/app_data?id=eq.main&select=data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpcmZvZGlvdWhyeG5oeHZrZHZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzI0NjcsImV4cCI6MjA5NzY0ODQ2N30.Wn9T1U-_M6QpYIOMev8Fc8N2BCh69iId7qefytH9g50" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-160, 0],
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "جلب بيانات النظام (Supabase)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const body = $input.first().json;\nconst row = Array.isArray(body) ? body[0] : body;\nconst data = row && row.data ? row.data : row;\n\nconst today = new Date().toISOString().slice(0, 10);\nconst students = data.students || [];\nconst attendance = data.attendance || {};\n\nconst results = [];\nfor (const key of Object.keys(attendance)) {\n  const date = key.split('|')[0];\n  if (date !== today) continue;\n  const rec = attendance[key];\n  for (const sid of Object.keys(rec)) {\n    const entry = rec[sid];\n    if (entry.day !== 'absent' && entry.day !== 'late') continue;\n    const student = students.find(s => s.id === sid);\n    if (!student || !student.guardianPhone) continue;\n    const digits = String(student.guardianPhone).replace(/\\D/g, '').replace(/^0+/, '');\n    results.push({\n      studentName: student.name,\n      grade: student.grade,\n      section: student.section,\n      statusAr: entry.day === 'absent' ? 'غائب' : 'متأخر',\n      guardianPhone: student.guardianPhone,\n      whatsappTo: 'whatsapp:+966' + digits,\n      today\n    });\n  }\n}\n\nreturn results.map(r => ({ json: r }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 0],
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "استخراج الغياب والتأخر اليوم"
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "={{$json.whatsappTo}}",
+        "message": "=عزيزي ولي أمر الطالب/ة {{$json.studentName}} ({{$json.grade}}/{{$json.section}})،\nنفيدكم بتسجيل حالة: {{$json.statusAr}} بتاريخ {{$json.today}}.\nمدرسة عثمان بن عفان الابتدائية"
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [280, 0],
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "إرسال واتساب لولي الأمر",
+      "credentials": {
+        "twilioApi": {
+          "id": "REPLACE_WITH_TWILIO_CREDENTIAL_ID",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "كل يوم الساعة 11:00": {
+      "main": [[{ "node": "جلب بيانات النظام (Supabase)", "type": "main", "index": 0 }]]
+    },
+    "جلب بيانات النظام (Supabase)": {
+      "main": [[{ "node": "استخراج الغياب والتأخر اليوم", "type": "main", "index": 0 }]]
+    },
+    "استخراج الغياب والتأخر اليوم": {
+      "main": [[{ "node": "إرسال واتساب لولي الأمر", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Riyadh" },
+  "pinData": {}
+}
