@@ -183,6 +183,24 @@ let FORM = {}, FILTERS = {}, SUBTAB = {};
 let TOASTS = [];
 let LOGIN_U = '', LOGIN_P = '', LOGIN_YEAR = '1447', LOGIN_TERM = 'الأول';
 
+// ===== LOGIN SESSION PERSISTENCE (8 ساعات = فترة الدوام) =====
+const LOGIN_SESSION_KEY = 'obf_school_login_session_v1';
+const LOGIN_SESSION_HOURS = 8;
+function saveLoginSession(u){
+  try{ localStorage.setItem(LOGIN_SESSION_KEY, JSON.stringify({ userId:u.id, year:LOGIN_YEAR+'هـ', term:LOGIN_TERM, expiresAt: Date.now() + LOGIN_SESSION_HOURS*3600*1000 })); }catch(e){}
+}
+function clearLoginSession(){ try{ localStorage.removeItem(LOGIN_SESSION_KEY); }catch(e){} }
+function restoreLoginSession(){
+  let saved;
+  try{ saved = JSON.parse(localStorage.getItem(LOGIN_SESSION_KEY)||'null'); }catch(e){ saved = null; }
+  if(!saved || !saved.expiresAt || saved.expiresAt <= Date.now()){ clearLoginSession(); return false; }
+  const u = DB.users.find(x=> x.id===saved.userId && x.active);
+  if(!u){ clearLoginSession(); return false; }
+  USER = u; SESSION = { year: saved.year||LOGIN_YEAR, term: saved.term||LOGIN_TERM };
+  VIEW = 'app'; SECTION = firstSection(u);
+  return true;
+}
+
 function setF(k,v){ FORM[k]=v; }
 function clearF(){ FORM={}; }
 function setFilter(k,v){ FILTERS[k]=v; }
@@ -233,12 +251,14 @@ async function doLogin(){
   if(h!==u.hash){ toast('كلمة المرور غير صحيحة','red'); return; }
   USER = u; SESSION = { year:LOGIN_YEAR+'هـ', term:LOGIN_TERM };
   VIEW='app'; SECTION=firstSection(u); LOGIN_P='';
+  saveLoginSession(u);
   logAction('تسجيل الدخول');
   renderRoot();
   toast('مرحباً بك، تم تسجيل الدخول');
 }
 function logout(){
   logAction('تسجيل الخروج');
+  clearLoginSession();
   USER=null; SESSION=null; VIEW='login'; FORM={}; SIDEBAR_OPEN=false;
   renderRoot();
 }
@@ -545,8 +565,10 @@ function dashSaveConfig(){
 const GENERIC_CONFIGS = {
   visitors: { key:'visitors', title:'سجل الزوار', dateFilter:true, print:true, csv:true, logAdd:'تسجيل زائر',
     fields:[ {k:'name',label:'اسم الزائر',required:true}, {k:'purpose',label:'الغرض',required:true}, {k:'org',label:'الجهة'},
+      {k:'nationalId',label:'رقم الهوية'}, {k:'phone',label:'رقم الجوال',type:'tel'},
       {k:'inTime',label:'وقت الدخول',type:'time'}, {k:'date',label:'التاريخ',type:'date'} ],
     cols:[ {k:'name',label:'الاسم',render:r=>esc(r.name)},{k:'purpose',label:'الغرض',render:r=>esc(r.purpose)},{k:'org',label:'الجهة',render:r=>esc(r.org||'—')},
+      {k:'nationalId',label:'رقم الهوية',render:r=>esc(r.nationalId||'—')},{k:'phone',label:'رقم الجوال',render:r=>esc(r.phone||'—')},
       {k:'inTime',label:'الدخول',render:r=>esc(r.inTime||'—')},
       {k:'outTime',label:'الخروج',render:r=> r.outTime? esc(r.outTime) : `<button class="btn btn-teal btn-sm" onclick="visitorCheckout('${r.id}')">تسجيل خروج</button>`},
       {k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
@@ -1323,6 +1345,7 @@ async function boot(){
     }catch(e){ console.warn('Cloud load error', e); }
   }
   await ensureDefaultUsers();
+  restoreLoginSession();
   READY = true;
   renderRoot();
   if(supa) cloudSubscribe();
