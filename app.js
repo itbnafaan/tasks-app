@@ -23,6 +23,7 @@ const SECTIONS_CLASS = ['أ','ب','ج','د'];
 
 const NAV = [
   { id:'dashboard', label:'لوحة المعلومات', icon:'📊' },
+  { id:'meetingRoom', label:'غرفة الاجتماعات', icon:'🗣️' },
   { id:'beneficiary', label:'خدمة المستفيد', icon:'🛎️' },
   { id:'attendance', label:'الحضور والغياب', icon:'🗓️' },
   { id:'students', label:'إدارة الطلاب', icon:'🎓' },
@@ -42,13 +43,13 @@ const ALL_SECTIONS = NAV.map(n=>n.id);
 const ROLES = {
   admin:   { label:'مسؤول النظام', sections:'ALL' },
   manager: { label:'مدير المدرسة', sections:'ALL' },
-  deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu'] },
-  deputyStudent: { label:'وكيل الشؤون الطلابية', sections:['deputyStudent','behavior'] },
-  deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence'] },
-  counselor: { label:'المرشد الطلابي', sections:['counselor'] },
-  beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary'] },
-  attendance: { label:'راصد الحضور', sections:['attendance'] },
-  staff: { label:'منسوب', sections:['staff'] }
+  deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu','meetingRoom'] },
+  deputyStudent: { label:'وكيل الشؤون الطلابية', sections:['deputyStudent','behavior','meetingRoom'] },
+  deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence','meetingRoom'] },
+  counselor: { label:'المرشد الطلابي', sections:['counselor','meetingRoom'] },
+  beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary','meetingRoom'] },
+  attendance: { label:'راصد الحضور', sections:['attendance','meetingRoom'] },
+  staff: { label:'منسوب', sections:['staff','meetingRoom'] }
 };
 
 const DEDUCT = { 1:1, 2:2, 3:3, 4:10, 5:15 };
@@ -87,6 +88,7 @@ function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
 function nowTime(){ const d=new Date(); return d.toTimeString().slice(0,5); }
 function fmtDate(s){ if(!s) return '—'; const d=new Date(s+'T00:00'); if(isNaN(d)) return s; return d.toLocaleDateString('ar-SA-u-ca-gregory',{year:'numeric',month:'2-digit',day:'2-digit'}); }
 function dowKey(dateStr){ const d=new Date(dateStr+'T00:00'); const map=['sun','mon','tue','wed','thu','fri','sat']; return map[d.getDay()]; }
+function nowStamp(){ const d=new Date(); return d.toLocaleDateString('ar-SA-u-ca-gregory',{year:'numeric',month:'2-digit',day:'2-digit'})+' '+d.toTimeString().slice(0,5); }
 
 // ===== DATA STORE =====
 function defaultStore(){
@@ -98,6 +100,7 @@ function defaultStore(){
     attendance:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
+    meetings:[], circulars:[], chatMessages:[],
     log:[]
   };
 }
@@ -481,7 +484,7 @@ function renderApp(){
 function renderSectionBody(){
   if(!can(SECTION)) return `<div class="no-access">لا تملك صلاحية الوصول إلى هذا القسم</div>`;
   const map = {
-    dashboard:secDashboard, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
+    dashboard:secDashboard, meetingRoom:secMeetingRoom, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
     users:secUsers, log:secLog, settings:secSettings
@@ -677,6 +680,148 @@ function genericPrint(cfgKey){
   const cfg = GENERIC_CONFIGS[cfgKey]; const list = DB[cfg.key]||[]; const rows = cfg.dateFilter? dateFiltered(list): list;
   const meta = cfg.dateFilter? [['الفترة', fmtDate(FILTERS.from||todayStr())+' — '+fmtDate(FILTERS.to||todayStr())],['عدد السجلات', rows.length]] : [['عدد السجلات', rows.length]];
   printReport('تقرير — '+cfg.title, meta, cfg.cols.map(c=>c.label), rows.map(r=>cfg.cols.map(c=> r[c.k]||'—')));
+}
+
+// ===== MEETING ROOM (اجتماعات / تعاميم / محادثة) =====
+function isMgmtUser(){ return !!USER && (USER.role==='admin'||USER.role==='manager'); }
+
+function secMeetingRoom(){
+  const tab = SUBTAB.meetingRoom||'meetings';
+  const tabs=[['meetings','الاجتماعات'],['circulars','التعاميم'],['chat','المحادثة']];
+  const body = tab==='circulars' ? circularsTabHTML() : tab==='chat' ? chatTabHTML() : meetingsTabHTML();
+  return subTabsHTML('meetingRoom',tabs) + body;
+}
+
+// ---- الاجتماعات ----
+function meetingsTabHTML(){
+  const mgmt = isMgmtUser();
+  let html='';
+  if(mgmt){
+    const invitees = FORM.mInvitees||[];
+    const usersHtml = DB.users.filter(u=>u.active).map(u=>{
+      const checked = invitees.includes(u.id)?'checked':'';
+      return `<label class="invitee-chip"><input type="checkbox" ${checked} onchange="toggleInvitee('${u.id}')"> ${esc(u.username)} <span style="color:${C.muted}">(${esc((ROLES[u.role]||{}).label||u.role)})</span></label>`;
+    }).join('');
+    html += card('إضافة اجتماع', `<div class="form-grid">
+        ${fieldWrap('عنوان الاجتماع', renderFieldControl({k:'mTitle',ph:'مثال: اجتماع مجلس المعلمين'}))}
+        ${fieldWrap('التاريخ', renderFieldControl({k:'mDate',type:'date'}))}
+        ${fieldWrap('الوقت', renderFieldControl({k:'mTime',type:'time'}))}
+        ${fieldWrap('المكان / رابط الاتصال', renderFieldControl({k:'mLocation',ph:'قاعة الاجتماعات أو رابط اتصال'}))}
+        ${fieldWrap('السماح للمدعوين بالرد والتعليق', renderFieldControl({k:'mAllowReplies',type:'select',options:[{v:'yes',l:'نعم'},{v:'no',l:'لا — عرض فقط'}]}))}
+      </div>
+      ${fieldWrap('جدول الأعمال / التفاصيل', renderFieldControl({k:'mAgenda',type:'textarea'}))}
+      <div class="field"><span style="display:block;margin-bottom:6px">دعوة الأعضاء المسجلين</span><div class="invitee-list">${usersHtml||'لا يوجد مستخدمون مسجلون'}</div></div>
+      <div class="row-gap">${btn('إرسال الدعوة وإضافة الاجتماع',"meetingAdd()",'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`);
+  }
+  const list = (DB.meetings||[]).filter(m=> mgmt || (m.invitees||[]).includes(USER.id)).slice().sort((a,b)=> (b.date+(b.time||'')).localeCompare(a.date+(a.time||'')));
+  if(!list.length){ html += card('الاجتماعات', `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد اجتماعات${mgmt?'':' مُدرَج فيها اسمك حالياً'}</div>`); return html; }
+  html += list.map(m=>{
+    const inviteeNames = (m.invitees||[]).map(iid=>{ const u=DB.users.find(x=>x.id===iid); return u?u.username:null; }).filter(Boolean);
+    const canReply = m.allowReplies || mgmt;
+    const replies = (m.replies||[]).map(r=> `<div class="chat-msg"><b>${esc(r.username)}</b> <span style="color:${C.muted};font-size:12px">${esc(r.time)}</span><div>${esc(r.text)}</div></div>`).join('') || `<div style="color:${C.muted};font-size:13px">لا توجد ردود بعد</div>`;
+    return card(esc(m.title), `
+      <div style="color:${C.muted};font-size:13px;margin-bottom:8px">${fmtDate(m.date)} · ${esc(m.time||'—')} ${m.location?'· '+esc(m.location):''}</div>
+      ${m.agenda?`<div style="margin-bottom:10px;white-space:pre-wrap">${esc(m.agenda)}</div>`:''}
+      <div style="font-size:13px;color:${C.muted};margin-bottom:10px">المدعوون: ${inviteeNames.length?esc(inviteeNames.join('، ')):'—'} &nbsp; ${pill(m.allowReplies?'الرد متاح للمدعوين':'الرد للإدارة فقط', m.allowReplies?C.teal:C.muted)}</div>
+      <div class="chat-thread">${replies}</div>
+      ${canReply?`<div class="row-gap" style="margin-top:8px"><input class="ctl" id="reply_${m.id}" placeholder="اكتب رداً…" value="${esc(FORM['reply_'+m.id]||'')}" oninput="setF('reply_${m.id}',this.value)" onkeydown="if(event.key==='Enter')meetingReply('${m.id}');"><button class="btn btn-primary btn-sm" onclick="meetingReply('${m.id}')">إرسال</button></div>`:''}
+    `, mgmt?`<button class="btn btn-red btn-sm" onclick="meetingDelete('${m.id}')">حذف</button>`:'');
+  }).join('');
+  return html;
+}
+function toggleInvitee(uid){ FORM.mInvitees = FORM.mInvitees||[]; const i=FORM.mInvitees.indexOf(uid); if(i>-1) FORM.mInvitees.splice(i,1); else FORM.mInvitees.push(uid); }
+function meetingAdd(){
+  if(!isMgmtUser()) return;
+  if(!FORM.mTitle||!FORM.mDate){ toast('يرجى تعبئة عنوان الاجتماع والتاريخ','red'); return; }
+  const rec = { id:uid(), title:FORM.mTitle, date:FORM.mDate, time:FORM.mTime||'', location:FORM.mLocation||'', agenda:FORM.mAgenda||'',
+    allowReplies: FORM.mAllowReplies==='yes', invitees: FORM.mInvitees||[], createdBy: USER.username, replies:[] };
+  update(d=>{ d.meetings = [rec, ...(d.meetings||[])]; });
+  logAction('إضافة اجتماع: '+rec.title);
+  clearF();
+  toast('تمت إضافة الاجتماع وإرسال الدعوات');
+  rerenderSection();
+}
+function meetingReply(id){
+  const text = (FORM['reply_'+id]||'').trim();
+  if(!text) return;
+  update(d=>{ const m=d.meetings.find(x=>x.id===id); if(!m) return; if(!m.replies) m.replies=[]; m.replies.push({id:uid(), userId:USER.id, username:USER.username, text, time:nowStamp()}); });
+  setF('reply_'+id,'');
+  rerenderSection();
+}
+function meetingDelete(id){
+  if(!isMgmtUser()) return;
+  update(d=>{ d.meetings = d.meetings.filter(x=>x.id!==id); });
+  toast('تم حذف الاجتماع');
+  rerenderSection();
+}
+
+// ---- التعاميم ----
+function circularsTabHTML(){
+  const mgmt = isMgmtUser();
+  let html='';
+  if(mgmt){
+    html += card('إصدار تعميم', `<div class="form-grid">
+        ${fieldWrap('عنوان التعميم', renderFieldControl({k:'cTitle',ph:'عنوان التعميم'}))}
+        ${fieldWrap('التاريخ', renderFieldControl({k:'cDate',type:'date'}))}
+      </div>
+      ${fieldWrap('نص التعميم', renderFieldControl({k:'cBody',type:'textarea'}))}
+      <div class="row-gap">${btn('نشر التعميم',"circularAdd()",'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`);
+  }
+  const list = (DB.circulars||[]).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  if(!list.length){ html += card('التعاميم', `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد تعاميم</div>`); return html; }
+  html += list.map(c=> card(esc(c.title), `
+      <div style="color:${C.muted};font-size:13px;margin-bottom:8px">${fmtDate(c.date)} · بواسطة ${esc(c.createdBy)}</div>
+      <div style="white-space:pre-wrap">${esc(c.body)}</div>
+    `, mgmt?`<button class="btn btn-red btn-sm" onclick="circularDelete('${c.id}')">حذف</button>`:'')
+  ).join('');
+  return html;
+}
+function circularAdd(){
+  if(!isMgmtUser()) return;
+  if(!FORM.cTitle||!FORM.cBody){ toast('يرجى تعبئة عنوان التعميم ونصه','red'); return; }
+  const rec = { id:uid(), title:FORM.cTitle, body:FORM.cBody, date:FORM.cDate||todayStr(), createdBy:USER.username };
+  update(d=>{ d.circulars = [rec, ...(d.circulars||[])]; });
+  logAction('إصدار تعميم: '+rec.title);
+  clearF();
+  toast('تم نشر التعميم');
+  rerenderSection();
+}
+function circularDelete(id){
+  if(!isMgmtUser()) return;
+  update(d=>{ d.circulars = d.circulars.filter(x=>x.id!==id); });
+  toast('تم حذف التعميم');
+  rerenderSection();
+}
+
+// ---- المحادثة ----
+function chatTabHTML(){
+  const msgs = (DB.chatMessages||[]).slice(-200);
+  const list = msgs.length ? msgs.map(m=>{
+    const mine = m.userId===USER.id;
+    const canDel = isMgmtUser() || mine;
+    return `<div class="chat-msg ${mine?'mine':''}">
+      <div><b>${esc(m.username)}</b> <span style="color:${C.muted};font-size:12px">${esc(m.time)}</span> ${canDel?`<button onclick="chatDelete('${m.id}')" style="font-size:12px;color:${C.red};border:none;background:none;cursor:pointer">حذف</button>`:''}</div>
+      <div>${esc(m.text)}</div>
+    </div>`;
+  }).join('') : `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد رسائل بعد — ابدأ المحادثة</div>`;
+  return card('المحادثة بين الأعضاء', `
+    <div class="chat-thread" id="chatThread">${list}</div>
+    <div class="row-gap" style="margin-top:10px">
+      <input class="ctl" id="chatInput" placeholder="اكتب رسالة…" value="${esc(FORM.chatMsg||'')}" oninput="setF('chatMsg',this.value)" onkeydown="if(event.key==='Enter')chatSend();">
+      <button class="btn btn-primary btn-sm" onclick="chatSend()">إرسال</button>
+    </div>`);
+}
+function chatSend(){
+  const text = (FORM.chatMsg||'').trim();
+  if(!text) return;
+  update(d=>{ d.chatMessages = [...(d.chatMessages||[]), {id:uid(), userId:USER.id, username:USER.username, text, time:nowStamp()}]; });
+  setF('chatMsg','');
+  rerenderSection();
+  const th=document.getElementById('chatThread'); if(th) th.scrollTop = th.scrollHeight;
+}
+function chatDelete(id){
+  update(d=>{ const m=(d.chatMessages||[]).find(x=>x.id===id); if(m && !(isMgmtUser()||m.userId===USER.id)) return; d.chatMessages = (d.chatMessages||[]).filter(x=>x.id!==id); });
+  rerenderSection();
 }
 
 // ===== BENEFICIARY =====
