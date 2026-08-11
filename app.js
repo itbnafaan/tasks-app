@@ -89,6 +89,7 @@ function nowTime(){ const d=new Date(); return d.toTimeString().slice(0,5); }
 function fmtDate(s){ if(!s) return '—'; const d=new Date(s+'T00:00'); if(isNaN(d)) return s; return d.toLocaleDateString('ar-SA-u-ca-gregory',{year:'numeric',month:'2-digit',day:'2-digit'}); }
 function dowKey(dateStr){ const d=new Date(dateStr+'T00:00'); const map=['sun','mon','tue','wed','thu','fri','sat']; return map[d.getDay()]; }
 function nowStamp(){ const d=new Date(); return d.toLocaleDateString('ar-SA-u-ca-gregory',{year:'numeric',month:'2-digit',day:'2-digit'})+' '+d.toTimeString().slice(0,5); }
+function withTimeout(promise, ms){ return Promise.race([promise, new Promise((_,rej)=> setTimeout(()=>rej(new Error('timeout')), ms))]); }
 
 // ===== DATA STORE =====
 function defaultStore(){
@@ -1550,9 +1551,10 @@ async function boot(){
   if(supa){
     setCloudStatus('loading');
     try{
-      const remote = await cloudLoadRaw();
+      const remote = await withTimeout(cloudLoadRaw(), 8000);
       if(isValidStore(remote)){ DB = mergeWithDefaults(remote); saveLocal(); }
-    }catch(e){ console.warn('Cloud load error', e); }
+      setCloudStatus('synced');
+    }catch(e){ console.warn('Cloud load error', e); setCloudStatus('offline'); }
   }
   await ensureDefaultUsers();
   restoreLoginSession();
