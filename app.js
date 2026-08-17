@@ -19,7 +19,7 @@ const STORAGE_KEY = 'obf_school_system_v1';
 const DAYS = ['sun','mon','tue','wed','thu'];
 const DAY_AR = { sun:'الأحد', mon:'الاثنين', tue:'الثلاثاء', wed:'الأربعاء', thu:'الخميس' };
 const GRADES = ['الأول','الثاني','الثالث','الرابع','الخامس','السادس'];
-const SECTIONS_CLASS = ['أ','ب','ج','د'];
+const SECTIONS_CLASS = ['أ','ب','ج','د','ه','و'];
 
 const NAV = [
   { id:'dashboard', label:'لوحة المعلومات', icon:'📊' },
@@ -1075,6 +1075,8 @@ function staffEmployees(){
   html += card('إضافة المعلمين دفعة واحدة', `<p style="font-size:13px;color:${C.muted};margin:0 0 8px">سطر لكل معلم. يمكن كتابة الحصص بعده بفواصل: <code>الاسم، 5، 4، 6، 5، 4</code></p>
     ${renderFieldControl({k:'bulk',type:'textarea',ph:'خالد أحمد، 5، 4، 6، 5، 4'})}
     <div class="row-gap">${btn('إضافة الدفعة','empBulkAdd()','gold')}</div>`);
+  html += card('استيراد من ملف CSV', `<p style="font-size:13px;color:${C.muted};margin:0 0 10px">الأعمدة بالترتيب: اسم، جوال، المسمى (اختياري) — يدعم الترميز العربي (BOM).</p>
+    <input type="file" accept=".csv" onchange="importEmployees(this.files[0])" style="font-size:13px">`);
   html += card('قائمة الموظفين ('+DB.employees.length+')', tableHTML(['الاسم','المسمى','القسم','الجوال','مجموع الحصص/أسبوع','إجراء'], DB.employees, (r,ci)=>{
     const tot = DAYS.reduce((a,d)=>a+((r.periods&&r.periods[d])||0),0);
     switch(ci){ case 0:return esc(r.name); case 1:return esc(r.title||'—'); case 2:return esc(r.dept||'—'); case 3:return esc(r.phone||'—'); case 4:return tot;
@@ -1102,6 +1104,19 @@ function empEdit(id){
   FORM = ff; rerenderSection();
 }
 function empDelete(id){ update(d=>{ d.employees=d.employees.filter(x=>x.id!==id); }); toast('تم الحذف'); rerenderSection(); }
+function importEmployees(file){
+  if(!file) return; const rd=new FileReader();
+  rd.onload = e=>{
+    let txt = e.target.result; if(txt.charCodeAt(0)===0xFEFF) txt=txt.slice(1);
+    const lines = txt.split(/\r?\n/).filter(l=>l.trim()); let added=0;
+    const start = /اسم|name/i.test(lines[0])?1:0; const rows=[];
+    for(let i=start;i<lines.length;i++){ const p=lines[i].split(',').map(x=>x.replace(/^"|"$/g,'').trim()); if(!p[0]) continue;
+      rows.push({id:uid(),name:p[0],title:p[2]||'معلم',dept:'',phone:p[1]||'',periods:{}}); added++; }
+    update(d=>{ d.employees=[...rows,...d.employees]; });
+    logAction('استيراد '+added+' موظف'); toast('تم استيراد '+added+' موظف'); rerenderSection();
+  };
+  rd.readAsText(file,'utf-8');
+}
 function empBulkAdd(){
   const txt = FORM.bulk||'';
   if(!txt.trim()){ toast('الصق الأسماء أولاً','red'); return; }
