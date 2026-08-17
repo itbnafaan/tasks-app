@@ -30,7 +30,7 @@ const NAV = [
   { id:'students', label:'إدارة الطلاب', icon:'🎓' },
   { id:'staff', label:'الموظفون والمهام', icon:'🧑‍🏫' },
   { id:'teacherAbsence', label:'غياب المعلمين والفاقد', icon:'📉' },
-  { id:'counselor', label:'المرشد الطلابي', icon:'🧭' },
+  { id:'counselor', label:'الموجه الطلابي', icon:'🧭' },
   { id:'behavior', label:'السلوك والمواظبة', icon:'⚖️' },
   { id:'deputyEdu', label:'وكيل الشؤون التعليمية', icon:'📚' },
   { id:'deputyStudent', label:'وكيل الشؤون الطلابية', icon:'🤝' },
@@ -47,7 +47,7 @@ const ROLES = {
   deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu','meetingRoom','messages'] },
   deputyStudent: { label:'وكيل الشؤون الطلابية', sections:['deputyStudent','behavior','meetingRoom','messages'] },
   deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence','meetingRoom','messages'] },
-  counselor: { label:'المرشد الطلابي', sections:['counselor','meetingRoom','messages'] },
+  counselor: { label:'الموجه الطلابي', sections:['counselor','meetingRoom','messages'] },
   beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary','meetingRoom','messages'] },
   attendance: { label:'راصد الحضور', sections:['attendance','meetingRoom','messages'] },
   staff: { label:'منسوب', sections:['staff','meetingRoom','messages'] }
@@ -621,13 +621,6 @@ const GENERIC_CONFIGS = {
       {k:'location',label:'الموقع'},{k:'status',label:'الحالة',type:'select',options:['جديد','قيد التنفيذ','منجز'],required:true},{k:'notes',label:'ملاحظات',type:'textarea'},{k:'date',label:'التاريخ',type:'date'} ],
     cols:[ {k:'item',label:'البند',render:r=>esc(r.item)},{k:'cat',label:'التصنيف',render:r=>esc(r.cat||'—')},{k:'location',label:'الموقع',render:r=>esc(r.location||'—')},
       {label:'الحالة',render:r=>pill(r.status, r.status==='منجز'?C.teal:r.status==='قيد التنفيذ'?C.amber:C.blue)},{k:'notes',label:'ملاحظات',render:r=>esc(r.notes||'—')},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
-  counselCases: { key:'counselCases', title:'الحالات الفردية', print:true, csv:true, logAdd:'إضافة حالة إرشادية',
-    fields:[ {k:'student',label:'الطالب',type:'select',options:()=>DB.students.map(s=>s.name),required:true},
-      {k:'type',label:'نوع الحالة',type:'select',options:['سلوكية','دراسية','نفسية/اجتماعية','صحية','أسرية','أخرى'],required:true},
-      {k:'desc',label:'الوصف',type:'textarea'},{k:'followDate',label:'تاريخ المتابعة',type:'date'},
-      {k:'status',label:'الحالة',type:'select',options:['جديدة','قيد المتابعة','مغلقة'],required:true} ],
-    cols:[ {k:'student',label:'الطالب',render:r=>esc(r.student)},{k:'type',label:'النوع',render:r=>esc(r.type)},{k:'desc',label:'الوصف',render:r=>esc(r.desc||'—')},{k:'followDate',label:'المتابعة',render:r=>fmtDate(r.followDate)},
-      {label:'الحالة',render:r=>pill(r.status, r.status==='مغلقة'?C.teal:r.status==='قيد المتابعة'?C.amber:C.blue)} ] },
   behaviorNotes: { key:'behaviorNotes', title:'ملاحظات السلوك والمواظبة', print:true, csv:true, logAdd:'رصد ملاحظة سلوك',
     fields:[ {k:'student',label:'الطالب',type:'select',options:()=>DB.students.map(s=>s.name),required:true},
       {k:'degree',label:'الدرجة',type:'select',options:['الأولى','الثانية','الثالثة','الرابعة','الخامسة'],required:true},
@@ -1366,11 +1359,57 @@ function secCounselor(){
   const tabs=[['cases','الحالات الفردية'],['behavior','السلوك والمواظبة'],['letters','الخطابات'],['plan','خطة تعديل السلوك']];
   const alert = `<div class="alert-box"><b>تنبيه (المادة 35): </b>الموجّه الطلابي لا يُشرك في رصد درجات السلوك ولا تنفيذ الحسم، ودوره دراسة الحالة وعلاجها.</div>`;
   let content;
-  if(tab==='cases') content = genericSectionHTML('counselCases');
+  if(tab==='cases') content = counselCasesHTML();
   else if(tab==='behavior') content = genericSectionHTML('behaviorNotes');
   else if(tab==='letters') content = counselorLetters();
   else content = behaviorPlan();
   return subTabsHTML('counselor',tabs) + alert + content;
+}
+function counselCasesHTML(){
+  const f = FORM;
+  const editing = !!f.ccEditId;
+  if(!editing && f.ccStatus==null) f.ccStatus='جديدة';
+  const closing = f.ccStatus==='مغلقة';
+  let html = card(editing?'تعديل الحالة':'إضافة حالة إرشادية', `<div class="form-grid">
+      ${fieldWrap('الطالب', renderFieldControl({k:'ccStudent',type:'select',options:DB.students.map(s=>s.name)}))}
+      ${fieldWrap('نوع الحالة', renderFieldControl({k:'ccType',type:'select',options:['سلوكية','دراسية','نفسية/اجتماعية','صحية','أسرية','أخرى']}))}
+      ${fieldWrap('تاريخ المتابعة', renderFieldControl({k:'ccFollow',type:'date'}))}
+      ${fieldWrap('حالة الدراسة', renderFieldControl({k:'ccStatus',type:'select',options:['جديدة','قيد المتابعة','مغلقة']}))}
+    </div>
+    ${fieldWrap('وصف الحالة', renderFieldControl({k:'ccDesc',type:'textarea'}))}
+    ${closing? fieldWrap('الإنجاز / نتيجة الحالة عند الإغلاق', renderFieldControl({k:'ccResolution',type:'textarea'})) : ''}
+    <div class="row-gap">${btn(editing?'حفظ التعديل':'حفظ','counselCaseSubmit()','primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`);
+
+  const list = DB.counselCases||[];
+  html += card('الحالات الفردية ('+list.length+')', tableHTML(['الطالب','النوع','الوصف','المتابعة','الحالة','الإنجاز','إجراء'], list, (r,ci)=>{
+    switch(ci){ case 0:return esc(r.student); case 1:return esc(r.type); case 2:return esc(r.desc||'—'); case 3:return fmtDate(r.followDate);
+      case 4:return pill(r.status, r.status==='مغلقة'?C.teal:r.status==='قيد المتابعة'?C.amber:C.blue);
+      case 5:return esc(r.resolution||'—');
+      case 6:return `<div class="td-actions">${btn('تعديل',`counselCaseEdit('${r.id}')`,'ghost')}${btn('حذف',`counselCaseDelete('${r.id}')`,'red')}</div>`; default:return ''; }
+  }), btn('طباعة','counselCasesPrint()','gold'));
+  return html;
+}
+function counselCaseSubmit(){
+  const f = FORM;
+  if(!f.ccStudent||!f.ccType){ toast('اختر الطالب ونوع الحالة','red'); return; }
+  if(f.ccEditId){
+    update(d=>{ const c=d.counselCases.find(x=>x.id===f.ccEditId); Object.assign(c,{student:f.ccStudent,type:f.ccType,desc:f.ccDesc||'',followDate:f.ccFollow||'',status:f.ccStatus||'جديدة',resolution:f.ccResolution||''}); });
+    logAction('تعديل حالة إرشادية'); toast('تم التعديل');
+  } else {
+    update(d=>{ d.counselCases.unshift({id:uid(),student:f.ccStudent,type:f.ccType,desc:f.ccDesc||'',followDate:f.ccFollow||'',status:f.ccStatus||'جديدة',resolution:f.ccResolution||''}); });
+    logAction('إضافة حالة إرشادية'); toast('تمت الإضافة');
+  }
+  clearF(); rerenderSection();
+}
+function counselCaseEdit(id){
+  const c = DB.counselCases.find(x=>x.id===id); if(!c) return;
+  FORM = { ccEditId:id, ccStudent:c.student, ccType:c.type, ccDesc:c.desc, ccFollow:c.followDate, ccStatus:c.status, ccResolution:c.resolution };
+  rerenderSection();
+}
+function counselCaseDelete(id){ update(d=>{ d.counselCases=d.counselCases.filter(x=>x.id!==id); }); toast('تم الحذف'); rerenderSection(); }
+function counselCasesPrint(){
+  printReport('الحالات الفردية',[['العدد',DB.counselCases.length]],['الطالب','النوع','الوصف','المتابعة','الحالة','الإنجاز'],
+    DB.counselCases.map(r=>[r.student,r.type,r.desc||'—',fmtDate(r.followDate),r.status,r.resolution||'—']));
 }
 function counselorLetters(){
   const f = FORM;
