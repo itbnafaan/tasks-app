@@ -24,6 +24,7 @@ const SECTIONS_CLASS = ['أ','ب','ج','د','ه','و'];
 const NAV = [
   { id:'dashboard', label:'لوحة المعلومات', icon:'📊' },
   { id:'meetingRoom', label:'غرفة الاجتماعات', icon:'🗣️' },
+  { id:'messages', label:'الرسائل الخاصة', icon:'✉️' },
   { id:'beneficiary', label:'خدمة المستفيد', icon:'🛎️' },
   { id:'attendance', label:'الحضور والغياب', icon:'🗓️' },
   { id:'students', label:'إدارة الطلاب', icon:'🎓' },
@@ -43,13 +44,13 @@ const ALL_SECTIONS = NAV.map(n=>n.id);
 const ROLES = {
   admin:   { label:'مسؤول النظام', sections:'ALL' },
   manager: { label:'مدير المدرسة', sections:'ALL' },
-  deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu','meetingRoom'] },
-  deputyStudent: { label:'وكيل الشؤون الطلابية', sections:['deputyStudent','behavior','meetingRoom'] },
-  deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence','meetingRoom'] },
-  counselor: { label:'المرشد الطلابي', sections:['counselor','meetingRoom'] },
-  beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary','meetingRoom'] },
-  attendance: { label:'راصد الحضور', sections:['attendance','meetingRoom'] },
-  staff: { label:'منسوب', sections:['staff','meetingRoom'] }
+  deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu','meetingRoom','messages'] },
+  deputyStudent: { label:'وكيل الشؤون الطلابية', sections:['deputyStudent','behavior','meetingRoom','messages'] },
+  deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence','meetingRoom','messages'] },
+  counselor: { label:'المرشد الطلابي', sections:['counselor','meetingRoom','messages'] },
+  beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary','meetingRoom','messages'] },
+  attendance: { label:'راصد الحضور', sections:['attendance','meetingRoom','messages'] },
+  staff: { label:'منسوب', sections:['staff','meetingRoom','messages'] }
 };
 
 const DEDUCT = { 1:1, 2:2, 3:3, 4:10, 5:15 };
@@ -101,7 +102,7 @@ function defaultStore(){
     attendance:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
-    meetings:[], circulars:[], chatMessages:[], chatThreads:[],
+    meetings:[], circulars:[], chatMessages:[], chatThreads:[], privateMessages:[],
     log:[]
   };
 }
@@ -218,6 +219,7 @@ function rolePerms(role){
 function can(section){
   if(!USER) return false;
   if(section==='dashboard') return !!USER.canDashboard;
+  if(USER.role==='admin'||USER.role==='manager') return true;
   return !!(USER.perms && USER.perms[section]);
 }
 function navFor(){ return NAV.filter(n=>can(n.id)); }
@@ -485,7 +487,7 @@ function renderApp(){
 function renderSectionBody(){
   if(!can(SECTION)) return `<div class="no-access">لا تملك صلاحية الوصول إلى هذا القسم</div>`;
   const map = {
-    dashboard:secDashboard, meetingRoom:secMeetingRoom, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
+    dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
     users:secUsers, log:secLog, settings:secSettings
@@ -885,6 +887,80 @@ function chatDelete(id){
   rerenderSection();
 }
 
+// ===== PRIVATE MESSAGES (رسائل خاصة بين المستخدمين) =====
+function secMessages(){
+  const other = FORM.pmWith;
+  if(other) return pmThreadHTML(other);
+  return pmInboxHTML();
+}
+function pmInboxHTML(){
+  const msgs = DB.privateMessages||[];
+  const mine = msgs.filter(m=> m.fromId===USER.id || m.toId===USER.id);
+  const byPartner = {};
+  mine.forEach(m=>{
+    const partnerId = m.fromId===USER.id? m.toId : m.fromId;
+    const partnerName = m.fromId===USER.id? m.toName : m.fromName;
+    if(!byPartner[partnerId]) byPartner[partnerId] = { id:partnerId, name:partnerName, last:m, unread:0 };
+    if(!byPartner[partnerId].last || (m.time||'') > (byPartner[partnerId].last.time||'')) byPartner[partnerId].last = m;
+    if(m.toId===USER.id && !m.read) byPartner[partnerId].unread++;
+  });
+  const convos = Object.values(byPartner).sort((a,b)=> (b.last.time||'').localeCompare(a.last.time||''));
+  const otherUsers = DB.users.filter(u=>u.id!==USER.id && u.active);
+
+  let html = card('رسالة جديدة', `<div class="form-grid">
+      ${fieldWrap('إلى', renderFieldControl({k:'pmTo',type:'select',options:otherUsers.map(u=>({v:u.id,l:u.username}))}))}
+    </div>
+    ${fieldWrap('نص الرسالة', renderFieldControl({k:'pmNewText',type:'textarea'}))}
+    <div class="row-gap">${btn('إرسال','pmSendNew()','primary')}</div>`);
+
+  if(!convos.length){ html += card('صندوق الرسائل', `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد رسائل بعد</div>`); return html; }
+  const items = convos.map(c=> `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 4px;border-bottom:1px solid ${C.border};cursor:pointer" onclick="pmOpen('${c.id}')">
+      <div><b>${esc(c.name)}</b><div style="font-size:12px;color:${C.muted};margin-top:2px">${esc((c.last.text||'').slice(0,60))}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">${c.unread?pill(c.unread,C.red):''}<span style="color:${C.muted};font-size:11px">${esc(c.last.time||'')}</span></div>
+    </div>`).join('');
+  html += card('صندوق الرسائل', items);
+  return html;
+}
+function pmSendNew(){
+  const toId = FORM.pmTo; const text = (FORM.pmNewText||'').trim();
+  if(!toId||!text){ toast('اختر المستلم واكتب الرسالة','red'); return; }
+  const toUser = DB.users.find(u=>u.id===toId); if(!toUser) return;
+  update(d=>{ d.privateMessages = [...(d.privateMessages||[]), {id:uid(), fromId:USER.id, fromName:USER.username, toId, toName:toUser.username, text, time:nowStamp(), read:false}]; });
+  FORM.pmNewText=''; FORM.pmWith=toId;
+  toast('تم الإرسال');
+  rerenderSection();
+}
+function pmOpen(id){
+  FORM.pmWith=id;
+  update(d=>{ (d.privateMessages||[]).forEach(m=>{ if(m.toId===USER.id && m.fromId===id && !m.read) m.read=true; }); });
+  rerenderSection();
+}
+function pmBack(){ FORM.pmWith=null; rerenderSection(); }
+function pmThreadHTML(otherId){
+  const other = DB.users.find(u=>u.id===otherId);
+  const msgs = (DB.privateMessages||[]).filter(m=> (m.fromId===USER.id&&m.toId===otherId) || (m.fromId===otherId&&m.toId===USER.id))
+    .slice().sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+  const list = msgs.length? msgs.map(m=>{
+    const mine = m.fromId===USER.id;
+    return `<div class="chat-msg ${mine?'mine':''}"><div><b>${esc(m.fromName)}</b> <span style="color:${C.muted};font-size:12px">${esc(m.time)}</span></div><div>${esc(m.text)}</div></div>`;
+  }).join('') : `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد رسائل بعد</div>`;
+  return `<div class="row-gap" style="margin-bottom:14px">${btn('رجوع للصندوق','pmBack()','ghost')}</div>` +
+    card(other?esc(other.username):'مستخدم', `
+      <div class="chat-thread" id="pmThread">${list}</div>
+      <div class="row-gap" style="margin-top:10px">
+        <input class="ctl" id="pmInput" placeholder="اكتب رداً…" value="${esc(FORM.pmReplyText||'')}" oninput="setF('pmReplyText',this.value)" onkeydown="if(event.key==='Enter')pmReply('${otherId}');">
+        <button class="btn btn-primary btn-sm" onclick="pmReply('${otherId}')">إرسال</button>
+      </div>`);
+}
+function pmReply(otherId){
+  const other = DB.users.find(u=>u.id===otherId); if(!other) return;
+  const text = (FORM.pmReplyText||'').trim(); if(!text) return;
+  update(d=>{ d.privateMessages = [...(d.privateMessages||[]), {id:uid(), fromId:USER.id, fromName:USER.username, toId:otherId, toName:other.username, text, time:nowStamp(), read:false}]; });
+  setF('pmReplyText','');
+  rerenderSection();
+  const th=document.getElementById('pmThread'); if(th) th.scrollTop = th.scrollHeight;
+}
+
 // ===== BENEFICIARY =====
 function secBeneficiary(){
   const tab = SUBTAB.beneficiary||'visitors';
@@ -1080,7 +1156,7 @@ function staffEmployees(){
   html += card('قائمة الموظفين ('+DB.employees.length+')', tableHTML(['الاسم','المسمى','القسم','الجوال','مجموع الحصص/أسبوع','إجراء'], DB.employees, (r,ci)=>{
     const tot = DAYS.reduce((a,d)=>a+((r.periods&&r.periods[d])||0),0);
     switch(ci){ case 0:return esc(r.name); case 1:return esc(r.title||'—'); case 2:return esc(r.dept||'—'); case 3:return esc(r.phone||'—'); case 4:return tot;
-      case 5:return `<div class="td-actions">${btn('تعديل',`empEdit('${r.id}')`,'ghost')}${btn('حذف',`empDelete('${r.id}')`,'red')}</div>`; default:return ''; }
+      case 5:return `<div class="td-actions">${btn('التقرير الشامل',`openEmpProfile('${r.id}')`,'gold')}${btn('تعديل',`empEdit('${r.id}')`,'ghost')}${btn('حذف',`empDelete('${r.id}')`,'red')}</div>`; default:return ''; }
   }));
   return html;
 }
@@ -1129,6 +1205,7 @@ function empBulkAdd(){
 
 // ===== TEACHER ABSENCE =====
 function secTeacherAbsence(){
+  if(FORM.empProfileId) return empProfileHTML(FORM.empProfileId);
   const tab = SUBTAB.teacherAbsence||'record';
   if(tab==='report') return subTabsHTML('teacherAbsence',[['record','التسجيل وسد الانتظار'],['report','تقرير الفاقد']]) + lostReport();
   const f = FORM;
@@ -1159,7 +1236,7 @@ function secTeacherAbsence(){
 
   html += card('سجل حالات المعلمين', tableHTML(['الموظف','النوع','التاريخ','العذر','مفقودة','مسدودة','فاقد فعلي','إجراء'], DB.teacherAbsences, (r,ci)=>{
     const cov = Object.values(r.covers||{}).filter(Boolean).length; const net=Math.max(0,(r.missing||0)-cov);
-    switch(ci){ case 0:return esc(r.empName); case 1:return esc(r.type); case 2:return fmtDate(r.date); case 3:return pill(r.excused?'بعذر':'بدون عذر',r.excused?C.teal:C.red);
+    switch(ci){ case 0:return r.empId? `<a href="#" onclick="event.preventDefault();openEmpProfile('${r.empId}')" style="color:${C.blue};font-weight:600">${esc(r.empName)}</a>` : esc(r.empName); case 1:return esc(r.type); case 2:return fmtDate(r.date); case 3:return pill(r.excused?'بعذر':'بدون عذر',r.excused?C.teal:C.red);
       case 4:return r.missing||0; case 5:return cov; case 6:return pill(net, net?C.red:C.teal);
       case 7:return btn('حذف',`taDelete('${r.id}')`,'red'); default:return ''; }
   }));
@@ -1176,6 +1253,72 @@ function taSubmit(){
   logAction('تسجيل حالة معلم: '+f.taType); clearF(); toast('تم التسجيل'); rerenderSection();
 }
 function taDelete(id){ update(d=>{ d.teacherAbsences=d.teacherAbsences.filter(x=>x.id!==id); }); toast('تم الحذف'); rerenderSection(); }
+function openEmpProfile(id){ SECTION='teacherAbsence'; SIDEBAR_OPEN=false; FORM={empProfileId:id}; renderRoot(); }
+function closeEmpProfile(){ FORM={}; renderRoot(); }
+function empProfileStats(id, emp){
+  const from = FILTERS.pFrom || DB.settings.termStart || todayStr();
+  const to = FILTERS.pTo || todayStr();
+  const abs = DB.teacherAbsences.filter(a=> (a.empId===id || a.empName===emp.name) && a.date>=from && a.date<=to);
+  let fullDays=0,late=0,perm=0,missingTotal=0,coveredTotal=0;
+  abs.forEach(a=>{ if(a.type==='غياب يوم كامل')fullDays++; if(a.type==='تأخر صباحي')late++; if(a.type==='استئذان خروج مبكر')perm++;
+    missingTotal += a.missing||0; coveredTotal += Object.values(a.covers||{}).filter(Boolean).length; });
+  const netLost = Math.max(0, missingTotal-coveredTotal);
+  let coveredForOthers = 0;
+  DB.teacherAbsences.filter(a=>a.date>=from&&a.date<=to).forEach(a=>{ Object.values(a.covers||{}).forEach(n=>{ if(n===emp.name) coveredForOthers++; }); });
+  const tasks = DB.tasks.filter(t=>t.assignee===emp.name);
+  const achievements = (DB.achievements||[]).filter(a=>a.name===emp.name && a.date>=from && a.date<=to);
+  const visits = (DB.classroomVisits||[]).filter(v=>v.teacher===emp.name && v.date>=from && v.date<=to);
+  return {from, to, abs, fullDays, late, perm, missingTotal, coveredTotal, netLost, coveredForOthers, tasks, achievements, visits};
+}
+function empProfileHTML(id){
+  const emp = DB.employees.find(e=>e.id===id);
+  if(!emp){ FORM.empProfileId=null; return `<div class="no-access">الموظف غير موجود</div>`; }
+  const s = empProfileStats(id, emp);
+  const tasksDone = s.tasks.filter(t=>t.status==='مكتملة').length;
+  let html = `<div class="row-gap" style="margin-bottom:14px">${btn('رجوع','closeEmpProfile()','ghost')}</div>`;
+  html += card(esc(emp.name), `
+    <div style="color:${C.muted};font-size:13px;margin-bottom:14px">${esc(emp.title||'—')} ${emp.dept?'· '+esc(emp.dept):''} ${emp.phone?'· '+esc(emp.phone):''}</div>
+    <div class="form-grid" style="margin-bottom:14px">
+      ${fieldWrap('من تاريخ', `<input type="date" class="ctl" value="${esc(s.from)}" onchange="setFilter('pFrom',this.value);rerenderSection();">`)}
+      ${fieldWrap('إلى تاريخ', `<input type="date" class="ctl" value="${esc(s.to)}" onchange="setFilter('pTo',this.value);rerenderSection();">`)}
+    </div>
+    <div class="stats-grid">${[
+      ['غياب يوم كامل',s.fullDays,C.red],['تأخر صباحي',s.late,C.amber],['استئذان',s.perm,C.blue],
+      ['فاقد فعلي (حصص)',s.netLost,s.netLost?C.red:C.teal],['سدّ الانتظار لمعلمين آخرين',s.coveredForOthers,C.teal],
+      ['مهام مكتملة',tasksDone+'/'+s.tasks.length,C.teal]
+    ].map(x=>stat(x[0],x[1],x[2])).join('')}</div>
+    <div class="row-gap">${btn('طباعة التقرير الشامل',`empProfilePrint('${id}')`,'gold')}</div>
+  `);
+  html += card('سجل الغياب والتأخر ('+s.abs.length+')', tableHTML(['التاريخ','النوع','العذر','مفقودة','مسدودة'], s.abs, (r,ci)=>{
+    const cov = Object.values(r.covers||{}).filter(Boolean).length;
+    switch(ci){ case 0:return fmtDate(r.date); case 1:return esc(r.type); case 2:return pill(r.excused?'بعذر':'بدون عذر',r.excused?C.teal:C.red); case 3:return r.missing||0; case 4:return cov; default:return ''; }
+  }));
+  html += card('المهام ('+s.tasks.length+')', tableHTML(['المهمة','الاستحقاق','الإنجاز','الحالة'], s.tasks, (r,ci)=>{
+    switch(ci){ case 0:return esc(r.title); case 1:return fmtDate(r.due); case 2:return (r.progress||0)+'%'; case 3:return pill(r.status, r.status==='مكتملة'?C.teal:r.status==='متأخرة'?C.red:C.amber); default:return ''; }
+  }));
+  html += card('الإنجازات ('+s.achievements.length+')', tableHTML(['الإنجاز','التفاصيل','التاريخ'], s.achievements, (r,ci)=>{
+    switch(ci){ case 0:return esc(r.title); case 1:return esc(r.desc||'—'); case 2:return fmtDate(r.date); default:return ''; }
+  }));
+  html += card('الزيارات الصفية ('+s.visits.length+')', tableHTML(['المادة','الصف','التقدير','التاريخ'], s.visits, (r,ci)=>{
+    switch(ci){ case 0:return esc(r.subject); case 1:return esc(r.grade||'—'); case 2:return pill(r.rating, r.rating==='ممتاز'?C.teal:r.rating==='يحتاج دعماً'?C.red:C.amber); case 3:return fmtDate(r.date); default:return ''; }
+  }));
+  return html;
+}
+function empProfilePrint(id){
+  const emp = DB.employees.find(e=>e.id===id); if(!emp) return;
+  const s = empProfileStats(id, emp);
+  const meta = [['المسمى',emp.title||'—'],['القسم',emp.dept||'—'],['الفترة',fmtDate(s.from)+' — '+fmtDate(s.to)],
+    ['غياب يوم كامل',s.fullDays],['تأخر',s.late],['استئذان',s.perm],['فاقد فعلي',s.netLost],['سدّ لمعلمين آخرين',s.coveredForOthers]];
+  const section = (title, cols, rows) => `<h1 style="font-size:15px;margin-top:24px">${esc(title)} (${rows.length})</h1>` +
+    (rows.length? '<table><thead><tr>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c==null?'—':c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'
+      : '<p style="color:#64748b;font-size:13px">لا يوجد</p>');
+  const extra = section('سجل الغياب والتأخر', ['التاريخ','النوع','العذر','مفقودة','مسدودة'],
+      s.abs.map(a=>[fmtDate(a.date), a.type, a.excused?'بعذر':'بدون عذر', a.missing||0, Object.values(a.covers||{}).filter(Boolean).length]))
+    + section('المهام', ['المهمة','الاستحقاق','الإنجاز','الحالة'], s.tasks.map(t=>[t.title, fmtDate(t.due), (t.progress||0)+'%', t.status]))
+    + section('الإنجازات', ['الإنجاز','التفاصيل','التاريخ'], s.achievements.map(a=>[a.title, a.desc||'—', fmtDate(a.date)]))
+    + section('الزيارات الصفية', ['المادة','الصف','التقدير','التاريخ'], s.visits.map(v=>[v.subject, v.grade||'—', v.rating, fmtDate(v.date)]));
+  printReport('التقرير الشامل — '+emp.name, meta, null, null, {html: extra});
+}
 function lostReport(){
   const from = FILTERS.from||DB.settings.termStart||todayStr(); const to=FILTERS.to||todayStr();
   const inRange = DB.teacherAbsences.filter(a=>a.date>=from&&a.date<=to);
@@ -1190,7 +1333,7 @@ function lostReport(){
     ${fieldWrap('من تاريخ', `<input type="date" class="ctl" value="${esc(from)}" onchange="setFilter('from',this.value);rerenderSection();">`)}
     ${fieldWrap('إلى تاريخ', `<input type="date" class="ctl" value="${esc(to)}" onchange="setFilter('to',this.value);rerenderSection();">`)}
   </div>` + tableHTML(['الموظف','غياب كامل','تأخر','استئذان','مفقودة','مسدودة','فاقد فعلي','نسبة السد'], rows, (r,ci)=>{
-    switch(ci){ case 0:return esc(r.name); case 1:return r.fullDays; case 2:return r.late; case 3:return r.perm; case 4:return r.missing; case 5:return r.covered; case 6:return pill(r.net,r.net?C.red:C.teal);
+    switch(ci){ case 0:{ const e=DB.employees.find(x=>x.name===r.name); return e? `<a href="#" onclick="event.preventDefault();openEmpProfile('${e.id}')" style="color:${C.blue};font-weight:600">${esc(r.name)}</a>` : esc(r.name); } case 1:return r.fullDays; case 2:return r.late; case 3:return r.perm; case 4:return r.missing; case 5:return r.covered; case 6:return pill(r.net,r.net?C.red:C.teal);
       case 7:return `<div style="display:flex;align-items:center;gap:6px;min-width:90px"><div style="flex:1;height:7px;background:${C.border};border-radius:5px"><div style="width:${r.rate}%;height:100%;background:${r.rate>=80?C.teal:C.amber};border-radius:5px"></div></div>${r.rate}%</div>`; default:return ''; }
   }) + `<div class="row-gap">${btn('تصدير CSV','lostReportCSV()','ghost')}${btn('طباعة','lostReportPrint()','gold')}</div>`;
   html = card('تقرير الفاقد التعليمي', html);
