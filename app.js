@@ -580,12 +580,16 @@ const GENERIC_CONFIGS = {
       {k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
   lateArrivals: { key:'lateArrivals', title:'الطلاب المتأخرون صباحاً', dateFilter:true, print:true, csv:true, logAdd:'تسجيل تأخر طالب',
     fields:[ {k:'name',label:'اسم الطالب',type:'select',options:()=>DB.students.map(s=>s.name),required:true},
-      {k:'gradeSec',label:'الصف/الفصل'}, {k:'time',label:'الوقت',type:'time'},
+      {k:'time',label:'الوقت',type:'time'},
       {k:'reason',label:'سبب التأخر',type:'select',options:['بدون عذر','ظرف أسري','مواصلات','نوم متأخر','موعد طبي','أخرى'],required:true},
       {k:'reasonOther',label:'تفصيل السبب',when:f=>f.reason==='أخرى'},
       {k:'date',label:'التاريخ',type:'date'} ],
-    onCreate:(rec)=>{ if(rec.reason==='أخرى'&&rec.reasonOther) rec.reason='أخرى: '+rec.reasonOther; },
-    cols:[ {k:'name',label:'الطالب',render:r=>esc(r.name)},{k:'gradeSec',label:'الصف/الفصل',render:r=>esc(r.gradeSec||'—')},{k:'time',label:'الوقت',render:r=>esc(r.time||'—')},{k:'reason',label:'السبب',render:r=>esc(r.reason)},
+    extra:f=>{ if(!f.name) return ''; const s=DB.students.find(x=>x.name===f.name); if(!s) return '';
+      return `<div class="info-box" style="margin-top:10px">الصف/الفصل: <b>${esc(s.grade+'/'+s.section)}</b> · جوال ولي الأمر: <b>${esc(s.guardianPhone||'—')}</b></div>`; },
+    onCreate:(rec)=>{ if(rec.reason==='أخرى'&&rec.reasonOther) rec.reason='أخرى: '+rec.reasonOther;
+      const s=DB.students.find(x=>x.name===rec.name); rec.gradeSec = s? (s.grade+'/'+s.section) : ''; rec.guardianPhone = s? (s.guardianPhone||'') : ''; },
+    cols:[ {k:'name',label:'الطالب',render:r=>esc(r.name)},{k:'gradeSec',label:'الصف/الفصل',render:r=>esc(r.gradeSec||'—')},
+      {k:'guardianPhone',label:'جوال ولي الأمر',render:r=>esc(r.guardianPhone||'—')},{k:'time',label:'الوقت',render:r=>esc(r.time||'—')},{k:'reason',label:'السبب',render:r=>esc(r.reason)},
       {label:'تكرار التأخر',render:r=>{ const m=lateCounter(); return pill('×'+(m[r.name]||1), (m[r.name]||1)>=3?C.red:C.amber); }},
       {k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
   earlyLeaves: { key:'earlyLeaves', title:'الاستئذان والخروج المبكر', dateFilter:true, print:true, csv:true, logAdd:'تسجيل استئذان',
@@ -635,7 +639,8 @@ function genericSectionHTML(cfgKey){
   const list = DB[cfg.key] || [];
   const rows = cfg.dateFilter ? dateFiltered(list) : list;
   const formFields = cfg.fields.filter(f=> !f.when || f.when(FORM)).map(f=>fieldWrap(f.label, renderFieldControl(f))).join('');
-  const formBody = `<div class="form-grid">${formFields}</div>
+  const extraHtml = cfg.extra ? cfg.extra(FORM) : '';
+  const formBody = `<div class="form-grid">${formFields}</div>${extraHtml}
     <div class="row-gap">${btn('حفظ',`genericSubmit('${cfgKey}')`,'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`;
   const cols = cfg.cols.map(c=>c.label).concat('إجراء');
   const tbl = tableHTML(cols, rows, (r,ci)=>{
