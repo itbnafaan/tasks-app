@@ -37,6 +37,7 @@ const NAV = [
   { id:'deputyStudent', label:'وكيل شؤون الطلاب', icon:'🤝' },
   { id:'deputySchool', label:'وكيل الشؤون المدرسية', icon:'🏫' },
   { id:'committees', label:'اللجان', icon:'🧑‍🤝‍🧑' },
+  { id:'commsHub', label:'الاتصال المؤسسي', icon:'📣' },
   { id:'users', label:'المستخدمون', icon:'👥' },
   { id:'log', label:'سجل الحركات', icon:'📜' },
   { id:'settings', label:'الإعدادات', icon:'⚙️' }
@@ -104,7 +105,7 @@ function defaultStore(){
     attendance:{}, periodIncidents:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
-    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[],
+    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[], commsActivities:[],
     log:[]
   };
 }
@@ -503,7 +504,7 @@ function renderSectionBody(){
     dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, studentFiles:secStudentFiles, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
-    committees:secCommittees,
+    committees:secCommittees, commsHub:secCommsHub,
     users:secUsers, log:secLog, settings:secSettings
   };
   const fn = map[SECTION];
@@ -669,6 +670,89 @@ function committeePrint(id){
 }
 function lateCounter(){ const m={}; DB.lateArrivals.forEach(r=> m[r.name]=(m[r.name]||0)+1); return m; }
 function visitorCheckout(id){ update(d=>{ const x=d.visitors.find(v=>v.id===id); if(x) x.outTime=nowTime(); }); toast('تم تسجيل الخروج'); rerenderSection(); }
+
+// ===== COMMS HUB (الاتصال المؤسسي) =====
+function secCommsHub(){
+  const editing = !!FORM.chEditId;
+  let html = card(editing?'تعديل نشاط':'إضافة نشاط', `<div class="form-grid">
+      ${fieldWrap('نوع النشاط', renderFieldControl({k:'chType',type:'select',options:['إعلان','برنامج']}))}
+      ${fieldWrap('العنوان', renderFieldControl({k:'chTitle'}))}
+      ${fieldWrap('رابط إلكتروني', renderFieldControl({k:'chLink',type:'url',ph:'https://…'}))}
+      ${fieldWrap('التاريخ', renderFieldControl({k:'chDate',type:'date'}))}
+    </div>
+    ${fieldWrap('الوصف', renderFieldControl({k:'chDesc',type:'textarea'}))}
+    <label style="font-size:13px;font-weight:600;display:block;margin-top:10px">صورة (اختياري، ≤ 400KB): <input type="file" accept="image/*" onchange="commsImageSelect(this.files[0])" style="font-size:12px"></label>
+    ${FORM.chImage?`<img src="${FORM.chImage}" style="max-height:120px;border-radius:8px;border:1px solid ${C.border};margin-top:8px;display:block">`:''}
+    <div class="row-gap">${btn(editing?'حفظ التعديل':'حفظ',"commsSave()",'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`);
+
+  const list = (DB.commsActivities||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const printBar = `<div class="form-grid" style="margin-bottom:10px">${fieldWrap('نطاق الطباعة', renderFieldControl({k:'chPrintScope',type:'select',options:[{v:'all',l:'الكل'},{v:'إعلان',l:'الإعلانات فقط'},{v:'برنامج',l:'البرامج فقط'}]}))}</div>
+    <div class="row-gap">${btn('طباعة التقرير',"commsPrint()",'gold')}</div>`;
+
+  if(!list.length){ html += card('الأنشطة المسجلة', printBar + `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد أنشطة مسجلة</div>`); return html; }
+
+  const itemsHtml = list.map(a=>`
+    <div class="formbox" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">${pill(a.type, a.type==='برنامج'?C.teal:C.blue)}<b>${esc(a.title)}</b></div>
+          <div style="color:${C.muted};font-size:12px;margin-top:4px">${fmtDate(a.date)}</div>
+        </div>
+        <div class="td-actions">${btn('تعديل',`commsEdit('${a.id}')`,'ghost')}${btn('حذف',`commsDelete('${a.id}')`,'red')}</div>
+      </div>
+      ${a.desc?`<div style="margin-top:8px;white-space:pre-wrap">${esc(a.desc)}</div>`:''}
+      ${a.link?`<div style="margin-top:6px"><a href="${esc(a.link)}" target="_blank" rel="noopener" style="color:${C.blue}">${esc(a.link)}</a></div>`:''}
+      ${a.image?`<img src="${a.image}" style="max-width:260px;border-radius:8px;border:1px solid ${C.border};margin-top:8px;cursor:zoom-in" onclick="window.open('${a.image}','_blank')">`:''}
+    </div>`).join('');
+  html += card('الأنشطة المسجلة ('+list.length+')', printBar + itemsHtml);
+  return html;
+}
+function commsImageSelect(file){
+  if(!file) return;
+  if(file.size>400*1024){ toast('حجم الصورة يتجاوز 400KB','red'); return; }
+  if(!file.type.startsWith('image/')){ toast('يُسمح بالصور فقط','red'); return; }
+  const rd = new FileReader();
+  rd.onload = e=>{ setF('chImage', e.target.result); rerenderSection(); };
+  rd.readAsDataURL(file);
+}
+function commsEdit(id){
+  const rec = (DB.commsActivities||[]).find(x=>x.id===id); if(!rec) return;
+  FORM = { chEditId:id, chType:rec.type, chTitle:rec.title, chLink:rec.link, chDate:rec.date, chDesc:rec.desc, chImage:rec.image };
+  rerenderSection();
+}
+function commsSave(){
+  if(!FORM.chTitle){ toast('يرجى تعبئة العنوان','red'); return; }
+  const type = FORM.chType||'إعلان';
+  if(FORM.chEditId){
+    update(d=>{ const rec=(d.commsActivities||[]).find(x=>x.id===FORM.chEditId); if(!rec) return;
+      rec.type=type; rec.title=FORM.chTitle; rec.link=FORM.chLink||''; rec.date=FORM.chDate||todayStr(); rec.desc=FORM.chDesc||''; rec.image=FORM.chImage||''; });
+    logAction('تعديل نشاط اتصال مؤسسي: '+FORM.chTitle);
+    clearF(); toast('تم التعديل'); rerenderSection();
+    return;
+  }
+  const rec = { id:uid(), type, title:FORM.chTitle, link:FORM.chLink||'', date:FORM.chDate||todayStr(), desc:FORM.chDesc||'', image:FORM.chImage||'', createdBy:USER.username };
+  update(d=>{ if(!d.commsActivities) d.commsActivities=[]; d.commsActivities.unshift(rec); });
+  logAction('إضافة نشاط اتصال مؤسسي: '+rec.title);
+  clearF(); toast('تمت الإضافة'); rerenderSection();
+}
+function commsDelete(id){
+  update(d=>{ d.commsActivities = (d.commsActivities||[]).filter(x=>x.id!==id); });
+  toast('تم الحذف'); rerenderSection();
+}
+function commsPrint(){
+  const scope = FORM.chPrintScope||'all';
+  let list = (DB.commsActivities||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(scope!=='all') list = list.filter(a=>a.type===scope);
+  const title = scope==='all' ? 'تقرير الإعلانات والبرامج' : (scope==='برنامج' ? 'تقرير البرامج' : 'تقرير الإعلانات');
+  const meta = [['عدد العناصر', list.length]];
+  const extra = list.map(a=>`<div class="formbox" style="margin-top:10px">
+      <div style="font-weight:700">${esc(a.type)} — ${esc(a.title)} <span style="color:#64748b;font-weight:400;font-size:12px">(${fmtDate(a.date)})</span></div>
+      ${a.desc?`<div style="margin-top:6px">${esc(a.desc)}</div>`:''}
+      ${a.link?`<div style="margin-top:6px">الرابط: ${esc(a.link)}</div>`:''}
+      ${a.image?`<img src="${a.image}" style="max-width:260px;margin-top:8px;border-radius:6px">`:''}
+    </div>`).join('') || '<p style="color:#64748b;font-size:13px">لا توجد عناصر</p>';
+  printReport(title, meta, null, null, {html: extra});
+}
 
 function genericSectionHTML(cfgKey){
   const cfg = GENERIC_CONFIGS[cfgKey];
