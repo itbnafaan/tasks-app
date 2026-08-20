@@ -36,6 +36,7 @@ const NAV = [
   { id:'deputyEdu', label:'وكيل الشؤون التعليمية', icon:'📚' },
   { id:'deputyStudent', label:'وكيل شؤون الطلاب', icon:'🤝' },
   { id:'deputySchool', label:'وكيل الشؤون المدرسية', icon:'🏫' },
+  { id:'committees', label:'اللجان', icon:'🧑‍🤝‍🧑' },
   { id:'users', label:'المستخدمون', icon:'👥' },
   { id:'log', label:'سجل الحركات', icon:'📜' },
   { id:'settings', label:'الإعدادات', icon:'⚙️' }
@@ -103,7 +104,7 @@ function defaultStore(){
     attendance:{}, periodIncidents:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
-    meetings:[], circulars:[], privateMessages:[], studentDocuments:[],
+    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[],
     log:[]
   };
 }
@@ -502,6 +503,7 @@ function renderSectionBody(){
     dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, studentFiles:secStudentFiles, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
+    committees:secCommittees,
     users:secUsers, log:secLog, settings:secSettings
   };
   const fn = map[SECTION];
@@ -645,8 +647,26 @@ const GENERIC_CONFIGS = {
     fields:[ {k:'item',label:'البند',required:true},{k:'cat',label:'التصنيف',type:'select',options:['تجهيزات','صيانة','أمن وسلامة']},
       {k:'location',label:'الموقع'},{k:'status',label:'الحالة',type:'select',options:['جديد','قيد التنفيذ','منجز'],required:true},{k:'notes',label:'ملاحظات',type:'textarea'},{k:'date',label:'التاريخ',type:'date'} ],
     cols:[ {k:'item',label:'البند',render:r=>esc(r.item)},{k:'cat',label:'التصنيف',render:r=>esc(r.cat||'—')},{k:'location',label:'الموقع',render:r=>esc(r.location||'—')},
-      {label:'الحالة',render:r=>pill(r.status, r.status==='منجز'?C.teal:r.status==='قيد التنفيذ'?C.amber:C.blue)},{k:'notes',label:'ملاحظات',render:r=>esc(r.notes||'—')},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] }
+      {label:'الحالة',render:r=>pill(r.status, r.status==='منجز'?C.teal:r.status==='قيد التنفيذ'?C.amber:C.blue)},{k:'notes',label:'ملاحظات',render:r=>esc(r.notes||'—')},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
+  committees: { key:'committees', title:'اللجان المدرسية', print:true, csv:true, edit:true, logAdd:'إضافة لجنة',
+    fields:[ {k:'name',label:'اسم اللجنة',required:true},{k:'head',label:'رئيس اللجنة'},
+      {k:'tasks',label:'مهام اللجنة',type:'textarea',required:true},
+      {k:'members',label:'أعضاء اللجنة',type:'textarea',required:true,ph:'اكتب كل عضو في سطر مستقل'},
+      {k:'date',label:'تاريخ التشكيل',type:'date'} ],
+    cols:[ {k:'name',label:'اسم اللجنة',render:r=>esc(r.name)},{k:'head',label:'رئيس اللجنة',render:r=>esc(r.head||'—')},
+      {k:'tasks',label:'المهام',render:r=>esc(r.tasks)},
+      {label:'عدد الأعضاء',render:r=>(r.members||'').split('\n').map(x=>x.trim()).filter(Boolean).length},
+      {k:'date',label:'تاريخ التشكيل',render:r=>fmtDate(r.date)},
+      {label:'طباعة',render:r=>`<button class="btn btn-gold btn-sm" onclick="committeePrint('${r.id}')">طباعة</button>`} ] }
 };
+function secCommittees(){ return genericSectionHTML('committees'); }
+function committeePrint(id){
+  const c = (DB.committees||[]).find(x=>x.id===id); if(!c) return;
+  const members = (c.members||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  const meta = [['اسم اللجنة',c.name],['رئيس اللجنة',c.head||'—'],['تاريخ التشكيل',fmtDate(c.date)],['عدد الأعضاء',members.length]];
+  const extra = `<div class="formbox"><b>مهام اللجنة:</b><br>${esc(c.tasks)}</div>`;
+  printReport('لجنة: '+c.name, meta, ['#','اسم العضو','التوقيع'], members.map((n,i)=>[i+1,n,'']), {html:extra});
+}
 function lateCounter(){ const m={}; DB.lateArrivals.forEach(r=> m[r.name]=(m[r.name]||0)+1); return m; }
 function visitorCheckout(id){ update(d=>{ const x=d.visitors.find(v=>v.id===id); if(x) x.outTime=nowTime(); }); toast('تم تسجيل الخروج'); rerenderSection(); }
 
