@@ -25,6 +25,7 @@ const NAV = [
   { id:'dashboard', label:'لوحة المعلومات', icon:'📊' },
   { id:'meetingRoom', label:'غرفة الاجتماعات', icon:'🗣️' },
   { id:'messages', label:'الرسائل الخاصة', icon:'✉️' },
+  { id:'studentFiles', label:'ملفات الطلاب', icon:'🗂️' },
   { id:'beneficiary', label:'خدمة المستفيد', icon:'🛎️' },
   { id:'attendance', label:'الحضور والغياب', icon:'🗓️' },
   { id:'students', label:'إدارة الطلاب', icon:'🎓' },
@@ -45,9 +46,9 @@ const ROLES = {
   admin:   { label:'مسؤول النظام', sections:'ALL' },
   manager: { label:'مدير المدرسة', sections:'ALL' },
   deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu','meetingRoom','messages'] },
-  deputyStudent: { label:'وكيل شؤون الطلاب', sections:['deputyStudent','behavior','meetingRoom','messages'] },
+  deputyStudent: { label:'وكيل شؤون الطلاب', sections:['deputyStudent','behavior','meetingRoom','messages','studentFiles'] },
   deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence','meetingRoom','messages'] },
-  counselor: { label:'الموجه الطلابي', sections:['counselor','meetingRoom','messages'] },
+  counselor: { label:'الموجه الطلابي', sections:['counselor','meetingRoom','messages','studentFiles'] },
   beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary','meetingRoom','messages'] },
   attendance: { label:'راصد الحضور', sections:['attendance','meetingRoom','messages'] },
   staff: { label:'منسوب', sections:['staff','meetingRoom','messages'] }
@@ -102,7 +103,7 @@ function defaultStore(){
     attendance:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
-    meetings:[], circulars:[], privateMessages:[],
+    meetings:[], circulars:[], privateMessages:[], studentDocuments:[],
     log:[]
   };
 }
@@ -498,7 +499,7 @@ function renderApp(){
 function renderSectionBody(){
   if(!can(SECTION)) return `<div class="no-access">لا تملك صلاحية الوصول إلى هذا القسم</div>`;
   const map = {
-    dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
+    dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, studentFiles:secStudentFiles, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
     users:secUsers, log:secLog, settings:secSettings
@@ -1442,6 +1443,7 @@ function counselorPrintLetter(){
   if(!L||!f.lStudent){ toast('اختر الطالب ونوع الخطاب','red'); return; }
   const sel = DB.students.find(s=>s.name===f.lStudent); const grade = sel?sel.grade:'______';
   printReport(L.t,[['التاريخ',fmtDate(todayStr())]],null,null,{html:'<div class="formbox" style="line-height:2.6;font-size:14px">'+esc(L.body({student:f.lStudent,grade}))+'</div>'});
+  update(d=>{ d.studentDocuments=[...(d.studentDocuments||[]), {id:uid(), student:f.lStudent, type:L.t, date:todayStr(), createdBy:USER.username}]; });
 }
 function behaviorPlan(){
   const fields = [['pStudent','الطالب','select'],['pProblem','المشكلة ودرجتها','text'],['pDesc','وصف المشكلة','textarea'],
@@ -1602,6 +1604,81 @@ function printBehaviorForm(id){
   const forms = window.__BEHAVIOR_FORMS||[];
   const fm = forms.find(x=>x.id===id); if(!fm) return;
   printReport(fm.t,[['التاريخ',fmtDate(todayStr())]],null,null,{html:fm.html()});
+  if(FORM.fStudent){
+    update(d=>{ d.studentDocuments=[...(d.studentDocuments||[]), {id:uid(), student:FORM.fStudent, type:fm.t, date:todayStr(), createdBy:USER.username}]; });
+  }
+}
+
+// ===== STUDENT FILES (ملف مرجعي شامل لكل طالب) =====
+function secStudentFiles(){
+  const q = FORM.sfQuery||'';
+  let html = card('البحث عن طالب', renderFieldControl({k:'sfQuery',type:'studentSearch',ph:'اكتب اسم الطالب…'}));
+  const student = DB.students.find(s=>s.name===q);
+  if(!student) return html;
+  html += studentFileHTML(student);
+  return html;
+}
+function studentFileStats(s){
+  const name = s.name;
+  let absent=0, late=0, excused=0, partial=0, totalDays=0;
+  Object.keys(DB.attendance||{}).forEach(k=>{
+    const rec = DB.attendance[k][s.id]; if(!rec) return;
+    totalDays++;
+    if(rec.day==='absent') absent++; else if(rec.day==='excused') excused++; else if(rec.day==='late') late++;
+    if(rec.periods && rec.periods.some(p=>p==='غ')) partial++;
+  });
+  const lateArr = (DB.lateArrivals||[]).filter(r=>r.name===name).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const earlyArr = (DB.earlyLeaves||[]).filter(r=>r.name===name).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const behavior = (DB.behaviorRecords||[]).filter(r=>r.student===name).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const cases = (DB.counselCases||[]).filter(r=>r.student===name);
+  const docs = (DB.studentDocuments||[]).filter(r=>r.student===name).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const score = studentBehaviorScore(name);
+  return {totalDays, absent, late, excused, partial, lateArr, earlyArr, behavior, cases, docs, score};
+}
+function studentFileHTML(s){
+  const st = studentFileStats(s);
+  let html = card(esc(s.name), `
+    <div style="color:${C.muted};font-size:13px;margin-bottom:14px">الصف/الفصل: <b>${esc(s.grade+'/'+s.section)}</b> · جوال ولي الأمر: <b>${esc(s.guardianPhone||'—')}</b></div>
+    <div class="stats-grid">${[
+      ['غياب',st.absent,C.red],['تأخر يومي',st.late,C.amber],['غياب بعذر',st.excused,C.blue],['غياب جزئي',st.partial,'#7a1f16'],
+      ['تأخر صباحي',st.lateArr.length,C.amber],['استئذان',st.earlyArr.length,C.gold],
+      ['مشكلات سلوكية',st.behavior.length,st.behavior.length?C.red:C.teal],['درجة السلوك',st.score,st.score>=80?C.teal:st.score>=60?C.amber:C.red],
+      ['حالات إرشادية',st.cases.length,C.blue],['خطابات ونماذج صادرة',st.docs.length,C.blue]
+    ].map(x=>stat(x[0],x[1],x[2])).join('')}</div>
+    <div class="row-gap">${btn('طباعة الملف الكامل',`studentFilePrint('${s.id}')`,'gold')}</div>
+  `);
+  html += card('التأخر الصباحي ('+st.lateArr.length+')', tableHTML(['التاريخ','الوقت','السبب'], st.lateArr, (r,ci)=>{
+    switch(ci){ case 0:return fmtDate(r.date); case 1:return esc(r.time||'—'); case 2:return esc(r.reason||'—'); default:return ''; }
+  }));
+  html += card('الاستئذان ('+st.earlyArr.length+')', tableHTML(['التاريخ','الوقت','المستلم','صلة القرابة','السبب'], st.earlyArr, (r,ci)=>{
+    switch(ci){ case 0:return fmtDate(r.date); case 1:return esc(r.time||'—'); case 2:return esc(r.receiver||'—'); case 3:return esc(r.relation||'—'); case 4:return esc(r.reason||'—'); default:return ''; }
+  }));
+  html += card('المشكلات السلوكية ('+st.behavior.length+')', tableHTML(['الدرجة','المشكلة','الإجراء المطبّق','الحسم','التاريخ'], st.behavior, (r,ci)=>{
+    switch(ci){ case 0:return pill('الدرجة '+r.degree,[C.gold,C.amber,C.blue,C.red,'#7a1f16'][r.degree-1]); case 1:return esc(r.problem); case 2:return `<span style="font-size:12.5px">${esc(r.procedure)}</span>`; case 3:return r.deduct?('−'+r.deduct):'—'; case 4:return fmtDate(r.date); default:return ''; }
+  }));
+  html += card('الحالات الإرشادية ('+st.cases.length+')', tableHTML(['النوع','الوصف','المتابعة','الحالة','الإنجاز'], st.cases, (r,ci)=>{
+    switch(ci){ case 0:return esc(r.type); case 1:return esc(r.desc||'—'); case 2:return fmtDate(r.followDate); case 3:return pill(r.status, r.status==='مغلقة'?C.teal:r.status==='قيد المتابعة'?C.amber:C.blue); case 4:return esc(r.resolution||'—'); default:return ''; }
+  }));
+  html += card('الخطابات والنماذج الصادرة ('+st.docs.length+')', tableHTML(['النوع','التاريخ','بواسطة'], st.docs, (r,ci)=>{
+    switch(ci){ case 0:return esc(r.type); case 1:return fmtDate(r.date); case 2:return esc(r.createdBy); default:return ''; }
+  }));
+  return html;
+}
+function studentFilePrint(id){
+  const s = DB.students.find(x=>x.id===id); if(!s) return;
+  const st = studentFileStats(s);
+  const meta = [['الصف/الفصل',s.grade+'/'+s.section],['جوال ولي الأمر',s.guardianPhone||'—'],
+    ['غياب',st.absent],['تأخر يومي',st.late],['تأخر صباحي',st.lateArr.length],['استئذان',st.earlyArr.length],
+    ['مشكلات سلوكية',st.behavior.length],['درجة السلوك',st.score]];
+  const section = (title, cols, rows) => `<h1 style="font-size:15px;margin-top:24px">${esc(title)} (${rows.length})</h1>` +
+    (rows.length? '<table><thead><tr>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c==null?'—':c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'
+      : '<p style="color:#64748b;font-size:13px">لا يوجد</p>');
+  const extra = section('التأخر الصباحي', ['التاريخ','الوقت','السبب'], st.lateArr.map(r=>[fmtDate(r.date), r.time||'—', r.reason||'—']))
+    + section('الاستئذان', ['التاريخ','الوقت','المستلم','صلة القرابة','السبب'], st.earlyArr.map(r=>[fmtDate(r.date), r.time||'—', r.receiver||'—', r.relation||'—', r.reason||'—']))
+    + section('المشكلات السلوكية', ['الدرجة','المشكلة','الإجراء','الحسم','التاريخ'], st.behavior.map(r=>['الدرجة '+r.degree, r.problem, r.procedure, r.deduct?('−'+r.deduct):'—', fmtDate(r.date)]))
+    + section('الحالات الإرشادية', ['النوع','الوصف','الحالة','الإنجاز'], st.cases.map(r=>[r.type, r.desc||'—', r.status, r.resolution||'—']))
+    + section('الخطابات والنماذج الصادرة', ['النوع','التاريخ','بواسطة'], st.docs.map(r=>[r.type, fmtDate(r.date), r.createdBy]));
+  printReport('الملف المرجعي — '+s.name, meta, null, null, {html: extra});
 }
 
 // ===== DEPUTIES =====
