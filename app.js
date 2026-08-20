@@ -1338,7 +1338,9 @@ function empProfileStats(id, emp){
   const tasks = DB.tasks.filter(t=>t.assignee===emp.name);
   const achievements = (DB.achievements||[]).filter(a=>a.name===emp.name && a.date>=from && a.date<=to);
   const visits = (DB.classroomVisits||[]).filter(v=>v.teacher===emp.name && v.date>=from && v.date<=to);
-  return {from, to, abs, fullDays, late, perm, missingTotal, coveredTotal, netLost, coveredForOthers, tasks, achievements, visits};
+  const linkedUser = DB.users.find(u=>u.employeeId===id);
+  const activity = linkedUser ? DB.log.filter(l=> l.user===linkedUser.username && l.time && l.time.slice(0,10)>=from && l.time.slice(0,10)<=to) : [];
+  return {from, to, abs, fullDays, late, perm, missingTotal, coveredTotal, netLost, coveredForOthers, tasks, achievements, visits, linkedUser, activity};
 }
 function empProfileHTML(id){
   const emp = DB.employees.find(e=>e.id===id);
@@ -1372,6 +1374,10 @@ function empProfileHTML(id){
   html += card('الزيارات الصفية ('+s.visits.length+')', tableHTML(['المادة','الصف','التقدير','التاريخ'], s.visits, (r,ci)=>{
     switch(ci){ case 0:return esc(r.subject); case 1:return esc(r.grade||'—'); case 2:return pill(r.rating, r.rating==='ممتاز'?C.teal:r.rating==='يحتاج دعماً'?C.red:C.amber); case 3:return fmtDate(r.date); default:return ''; }
   }));
+  const activityBody = s.linkedUser
+    ? tableHTML(['الحركة','الوقت'], s.activity, (r,ci)=> ci===0? esc(r.action) : esc(new Date(r.time).toLocaleString('ar-SA-u-ca-gregory')))
+    : `<div style="color:${C.muted};padding:14px;text-align:center">لا يوجد حساب مستخدم مرتبط بهذا الموظف لعرض حركاته في النظام</div>`;
+  html += card('سجل الحركات والإجراءات في النظام ('+s.activity.length+')', activityBody);
   return html;
 }
 function empProfilePrint(id){
@@ -1386,7 +1392,8 @@ function empProfilePrint(id){
       s.abs.map(a=>[fmtDate(a.date), a.type, a.excused?'بعذر':'بدون عذر', a.missing||0, Object.values(a.covers||{}).filter(Boolean).length]))
     + section('المهام', ['المهمة','الاستحقاق','الإنجاز','الحالة'], s.tasks.map(t=>[t.title, fmtDate(t.due), (t.progress||0)+'%', t.status]))
     + section('الإنجازات', ['الإنجاز','التفاصيل','التاريخ'], s.achievements.map(a=>[a.title, a.desc||'—', fmtDate(a.date)]))
-    + section('الزيارات الصفية', ['المادة','الصف','التقدير','التاريخ'], s.visits.map(v=>[v.subject, v.grade||'—', v.rating, fmtDate(v.date)]));
+    + section('الزيارات الصفية', ['المادة','الصف','التقدير','التاريخ'], s.visits.map(v=>[v.subject, v.grade||'—', v.rating, fmtDate(v.date)]))
+    + section('سجل الحركات والإجراءات في النظام', ['الحركة','الوقت'], s.activity.map(a=>[a.action, new Date(a.time).toLocaleString('ar-SA-u-ca-gregory')]));
   printReport('التقرير الشامل — '+emp.name, meta, null, null, {html: extra});
 }
 function lostReport(){
