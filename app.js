@@ -100,7 +100,7 @@ function defaultStore(){
     settings:{ schoolName:SCHOOL.name, principal:SCHOOL.principal, edu:SCHOOL.edu, logo:'', termStart:todayStr(), dashCfg:null },
     users:[], employees:[], students:[],
     visitors:[], lateArrivals:[], earlyLeaves:[],
-    attendance:{}, tasks:[], achievements:[],
+    attendance:{}, periodIncidents:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
     meetings:[], circulars:[], privateMessages:[], studentDocuments:[],
@@ -961,9 +961,11 @@ function secBeneficiary(){
 // ===== ATTENDANCE =====
 function secAttendance(){
   const tab = SUBTAB.attendance||'daily';
-  if(tab==='report') return subTabsHTML('attendance',[['daily','الرصد اليومي'],['report','تقارير الحضور']]) + attendanceReport();
+  const attTabs = [['daily','الرصد اليومي'],['incidents','تسجيل حالات الحصص اليومية'],['report','تقارير الحضور']];
+  if(tab==='report') return subTabsHTML('attendance',attTabs) + attendanceReport();
+  if(tab==='incidents') return subTabsHTML('attendance',attTabs) + secAttIncidents();
   const date = FORM.attDate||todayStr(); const grade=FORM.attGrade||''; const sec=FORM.attSec||'';
-  let html = subTabsHTML('attendance',[['daily','الرصد اليومي'],['report','تقارير الحضور']]);
+  let html = subTabsHTML('attendance',attTabs);
   html += card('اختيار اليوم والفصل', `<div class="form-grid">
     ${fieldWrap('التاريخ', `<input type="date" class="ctl" value="${esc(date)}" onchange="setF('attDate',this.value);rerenderSection();">`)}
     ${fieldWrap('الصف', renderFieldControl({k:'attGrade',type:'select',options:GRADES}))}
@@ -1016,6 +1018,65 @@ function printDailyAbsence(date,grade,sec){
     .map((s,i)=>{ const r=rec[s.id]; return [i+1,s.name,grade+'/'+sec,map[r.day]||'—',(r.periods||[]).map((p,idx)=>p?('ح'+(idx+1)+':'+p):'').filter(Boolean).join('  ')||'—', s.guardianPhone||'—']; });
   printReport('كشف الغياب اليومي', [['التاريخ',fmtDate(date)],['الفصل',grade+' / '+sec],['عدد الحالات',rows.length]],
     ['#','الطالب','الصف/الفصل','حالة اليوم','تفصيل الحصص','جوال ولي الأمر'], rows);
+}
+const PERIOD_INCIDENT_TYPES = ['','هروب','التأخر عن الحصة','إثارة الفوضى','أخرى'];
+function emptyPeriodIncident(){ return {types:['','','','','',''],notes:['','','','','',''],positive:[false,false,false,false,false,false]}; }
+function aiEnsure(d,akey,sid){ if(!d.periodIncidents) d.periodIncidents={}; if(!d.periodIncidents[akey]) d.periodIncidents[akey]={}; if(!d.periodIncidents[akey][sid]) d.periodIncidents[akey][sid]=emptyPeriodIncident(); return d.periodIncidents[akey][sid]; }
+function secAttIncidents(){
+  const date = FORM.aiDate||todayStr(); const grade=FORM.aiGrade||''; const sec=FORM.aiSec||'';
+  let html = card('اختيار اليوم والفصل', `<div class="form-grid">
+    ${fieldWrap('التاريخ', `<input type="date" class="ctl" value="${esc(date)}" onchange="setF('aiDate',this.value);rerenderSection();">`)}
+    ${fieldWrap('الصف', renderFieldControl({k:'aiGrade',type:'select',options:GRADES}))}
+    ${fieldWrap('الفصل', renderFieldControl({k:'aiSec',type:'select',options:SECTIONS_CLASS}))}
+  </div>`);
+  if(!(grade&&sec)){ html += `<div style="color:${C.muted};padding:30px;text-align:center">اختر الصف والفصل لعرض قائمة الطلاب</div>`; return html; }
+  const roster = DB.students.filter(s=>s.grade===grade&&s.section===sec);
+  const akey = date+'|'+grade+'|'+sec;
+  const rec = (DB.periodIncidents||{})[akey]||{};
+  let body;
+  if(!roster.length){ body = `<div style="color:${C.muted};padding:20px;text-align:center">لا يوجد طلاب في هذا الفصل — أضف طلاباً من «إدارة الطلاب»</div>`; }
+  else{
+    const rowsHtml = roster.map((s,i)=>{
+      const r = rec[s.id]||emptyPeriodIncident();
+      const cells = [0,1,2,3,4,5].map(pi=>{
+        const t = r.types[pi]||''; const note = r.notes[pi]||''; const pos = !!r.positive[pi];
+        const sel = `<select class="ctl" style="font-size:12px;padding:3px 4px" onchange="aiSetType('${akey}','${s.id}',${pi},this.value)">${PERIOD_INCIDENT_TYPES.map(tp=>`<option value="${esc(tp)}" ${t===tp?'selected':''}>${esc(tp||'—')}</option>`).join('')}</select>`;
+        const noteInput = t==='أخرى' ? `<input type="text" class="ctl" style="font-size:12px;padding:3px 4px;margin-top:3px" placeholder="وصف الحدث" value="${esc(note)}" onchange="aiSetNote('${akey}','${s.id}',${pi},this.value)">` : '';
+        const posBtn = `<button class="period-btn" title="سلوك إيجابي" style="margin-top:3px;border:1px solid ${C.teal};background:${pos?C.teal:'#fff'};color:${pos?'#fff':C.teal}" onclick="aiTogglePositive('${akey}','${s.id}',${pi})">⭐</button>`;
+        return `<td style="min-width:130px">${sel}${noteInput}<div style="margin-top:3px">${posBtn}</div></td>`;
+      }).join('');
+      return `<tr><td>${i+1}</td><td style="font-weight:600;white-space:nowrap">${esc(s.name)}</td>${cells}</tr>`;
+    }).join('');
+    body = `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>الطالب</th>${[1,2,3,4,5,6].map(n=>`<th>الحصة ${n}</th>`).join('')}</tr></thead><tbody>${rowsHtml}</tbody></table></div>
+      <div class="row-gap">${btn('طباعة تقرير الحصص اليومي',`printPeriodIncidents('${date}','${grade}','${sec}')`,'gold')}</div>`;
+  }
+  html += card('تسجيل حالات الحصص اليومية — '+grade+' / '+sec+' — '+fmtDate(date), body);
+  return html;
+}
+function aiSetType(akey,sid,pi,v){
+  update(d=>{ const r=aiEnsure(d,akey,sid); r.types[pi]=v; if(v!=='أخرى') r.notes[pi]=''; });
+  rerenderSection();
+}
+function aiSetNote(akey,sid,pi,v){
+  update(d=>{ aiEnsure(d,akey,sid).notes[pi]=v; });
+}
+function aiTogglePositive(akey,sid,pi){
+  update(d=>{ const r=aiEnsure(d,akey,sid); r.positive[pi]=!r.positive[pi]; });
+  rerenderSection();
+}
+function printPeriodIncidents(date,grade,sec){
+  const akey = date+'|'+grade+'|'+sec;
+  const rec = (DB.periodIncidents||{})[akey]||{};
+  const roster = DB.students.filter(s=>s.grade===grade&&s.section===sec);
+  const rows = roster.filter(s=>{ const r=rec[s.id]; return r && (r.types.some(Boolean) || r.positive.some(Boolean)); })
+    .map((s,i)=>{
+      const r=rec[s.id];
+      const incidents = r.types.map((t,idx)=> t ? ('ح'+(idx+1)+': '+t+(t==='أخرى'&&r.notes[idx]?' — '+r.notes[idx]:'')) : '').filter(Boolean).join('  ');
+      const positives = r.positive.map((p,idx)=>p?('ح'+(idx+1)):'').filter(Boolean).join('، ');
+      return [i+1, s.name, grade+'/'+sec, incidents||'—', positives||'—'];
+    });
+  printReport('تقرير حالات الحصص اليومية', [['التاريخ',fmtDate(date)],['الفصل',grade+' / '+sec],['عدد الحالات',rows.length]],
+    ['#','الطالب','الصف/الفصل','الحالات المسجلة','سلوك إيجابي'], rows);
 }
 function attendanceReport(){
   const grade=FILTERS.rGrade||''; const sec=FILTERS.rSec||''; const from=FILTERS.from||DB.settings.termStart||todayStr(); const to=FILTERS.to||todayStr();
