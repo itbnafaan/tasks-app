@@ -33,7 +33,7 @@ const NAV = [
   { id:'counselor', label:'الموجه الطلابي', icon:'🧭' },
   { id:'behavior', label:'السلوك والمواظبة', icon:'⚖️' },
   { id:'deputyEdu', label:'وكيل الشؤون التعليمية', icon:'📚' },
-  { id:'deputyStudent', label:'وكيل الشؤون الطلابية', icon:'🤝' },
+  { id:'deputyStudent', label:'وكيل شؤون الطلاب', icon:'🤝' },
   { id:'deputySchool', label:'وكيل الشؤون المدرسية', icon:'🏫' },
   { id:'users', label:'المستخدمون', icon:'👥' },
   { id:'log', label:'سجل الحركات', icon:'📜' },
@@ -45,7 +45,7 @@ const ROLES = {
   admin:   { label:'مسؤول النظام', sections:'ALL' },
   manager: { label:'مدير المدرسة', sections:'ALL' },
   deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu','meetingRoom','messages'] },
-  deputyStudent: { label:'وكيل الشؤون الطلابية', sections:['deputyStudent','behavior','meetingRoom','messages'] },
+  deputyStudent: { label:'وكيل شؤون الطلاب', sections:['deputyStudent','behavior','meetingRoom','messages'] },
   deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence','meetingRoom','messages'] },
   counselor: { label:'الموجه الطلابي', sections:['counselor','meetingRoom','messages'] },
   beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary','meetingRoom','messages'] },
@@ -102,7 +102,7 @@ function defaultStore(){
     attendance:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
-    meetings:[], circulars:[], chatMessages:[], chatThreads:[], privateMessages:[],
+    meetings:[], circulars:[], privateMessages:[],
     log:[]
   };
 }
@@ -366,6 +366,17 @@ function renderFieldControl(f){
     opts.forEach(o=>{ const v = typeof o==='string'?o:o.v; const l = typeof o==='string'?o:o.l; optHtml += `<option value="${esc(v)}" ${FORM[f.k]===v?'selected':''}>${esc(l)}</option>`; });
     return `<select id="${id}" class="ctl" onchange="setF('${f.k}',this.value);rerenderSection();">${optHtml}</select>`;
   }
+  if(f.type==='studentSearch'){
+    const q = FORM[f.k]||'';
+    const exact = DB.students.some(s=>s.name===q);
+    const matches = (q && !exact) ? DB.students.filter(s=>s.name.startsWith(q)).slice(0,30) : [];
+    const dropdown = matches.length ? `<div class="search-dropdown">${matches.map(s=>`<div class="search-item" onclick="setF('${f.k}', ${esc(JSON.stringify(s.name))});rerenderSection();">${esc(s.name)}</div>`).join('')}</div>` : '';
+    return `<div style="position:relative">
+      <input type="text" id="${id}" class="ctl" placeholder="${esc(f.ph||'اكتب اسم الطالب…')}" value="${esc(q)}" autocomplete="off"
+        oninput="setF('${f.k}',this.value);rerenderSection();">
+      ${dropdown}
+    </div>`;
+  }
   if(f.type==='textarea'){
     return `<textarea id="${id}" class="ctl" rows="3" placeholder="${esc(f.ph||'')}" oninput="setF('${f.k}',this.value);">${esc(FORM[f.k]||'')}</textarea>`;
   }
@@ -570,16 +581,20 @@ function dashSaveConfig(){
 // ===== GENERIC CRUD SECTION ENGINE =====
 const GENERIC_CONFIGS = {
   visitors: { key:'visitors', title:'سجل الزوار', dateFilter:true, print:true, csv:true, logAdd:'تسجيل زائر',
-    fields:[ {k:'name',label:'اسم الزائر',required:true}, {k:'purpose',label:'الغرض',required:true}, {k:'org',label:'الجهة'},
+    fields:[ {k:'name',label:'اسم الزائر',required:true},
+      {k:'purpose',label:'الغرض',type:'select',options:['زيارة المدير','زيارة الموجه الطلابي','وكيل شؤون الطلاب','الصيانة','أخرى'],required:true},
+      {k:'purposeOther',label:'تفصيل الغرض',when:f=>f.purpose==='أخرى'},
+      {k:'org',label:'الجهة'},
       {k:'nationalId',label:'رقم الهوية'}, {k:'phone',label:'رقم الجوال',type:'tel'},
       {k:'inTime',label:'وقت الدخول',type:'time'}, {k:'date',label:'التاريخ',type:'date'} ],
+    onCreate:(rec)=>{ if(rec.purpose==='أخرى'&&rec.purposeOther) rec.purpose='أخرى: '+rec.purposeOther; },
     cols:[ {k:'name',label:'الاسم',render:r=>esc(r.name)},{k:'purpose',label:'الغرض',render:r=>esc(r.purpose)},{k:'org',label:'الجهة',render:r=>esc(r.org||'—')},
       {k:'nationalId',label:'رقم الهوية',render:r=>esc(r.nationalId||'—')},{k:'phone',label:'رقم الجوال',render:r=>esc(r.phone||'—')},
       {k:'inTime',label:'الدخول',render:r=>esc(r.inTime||'—')},
       {k:'outTime',label:'الخروج',render:r=> r.outTime? esc(r.outTime) : `<button class="btn btn-teal btn-sm" onclick="visitorCheckout('${r.id}')">تسجيل خروج</button>`},
       {k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
   lateArrivals: { key:'lateArrivals', title:'الطلاب المتأخرون صباحاً', dateFilter:true, print:true, csv:true, logAdd:'تسجيل تأخر طالب',
-    fields:[ {k:'name',label:'اسم الطالب',type:'select',options:()=>DB.students.map(s=>s.name),required:true},
+    fields:[ {k:'name',label:'اسم الطالب',type:'studentSearch',required:true},
       {k:'time',label:'الوقت',type:'time'},
       {k:'reason',label:'سبب التأخر',type:'select',options:['بدون عذر','ظرف أسري','مواصلات','نوم متأخر','موعد طبي','أخرى'],required:true},
       {k:'reasonOther',label:'تفصيل السبب',when:f=>f.reason==='أخرى'},
@@ -592,14 +607,19 @@ const GENERIC_CONFIGS = {
       {k:'guardianPhone',label:'جوال ولي الأمر',render:r=>esc(r.guardianPhone||'—')},{k:'time',label:'الوقت',render:r=>esc(r.time||'—')},{k:'reason',label:'السبب',render:r=>esc(r.reason)},
       {label:'تكرار التأخر',render:r=>{ const m=lateCounter(); return pill('×'+(m[r.name]||1), (m[r.name]||1)>=3?C.red:C.amber); }},
       {k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
-  earlyLeaves: { key:'earlyLeaves', title:'الاستئذان والخروج المبكر', dateFilter:true, print:true, csv:true, logAdd:'تسجيل استئذان',
-    fields:[ {k:'name',label:'الطالب',type:'select',options:()=>DB.students.map(s=>s.name),required:true},
-      {k:'receiver',label:'المستلم',required:true}, {k:'time',label:'الوقت',type:'time'},
+  earlyLeaves: { key:'earlyLeaves', title:'الاستئذان', dateFilter:true, print:true, csv:true, logAdd:'تسجيل استئذان',
+    fields:[ {k:'name',label:'الطالب',type:'studentSearch',required:true},
+      {k:'receiver',label:'المستلم',required:true}, {k:'relation',label:'صلة القرابة',required:true}, {k:'time',label:'الوقت',type:'time'},
       {k:'reason',label:'السبب',type:'select',options:['ظرف صحي','موعد طبي','ظرف أسري','مغادرة مبكرة','أخرى'],required:true},
       {k:'reasonOther',label:'اكتب السبب',type:'textarea',when:f=>f.reason==='أخرى'},
       {k:'date',label:'التاريخ',type:'date'} ],
-    onCreate:(rec)=>{ if(rec.reason==='أخرى'&&rec.reasonOther) rec.reason='أخرى: '+rec.reasonOther; },
-    cols:[ {k:'name',label:'الطالب',render:r=>esc(r.name)},{k:'receiver',label:'المستلم',render:r=>esc(r.receiver)},{k:'time',label:'الوقت',render:r=>esc(r.time||'—')},{k:'reason',label:'السبب',render:r=>esc(r.reason)},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
+    extra:f=>{ if(!f.name) return ''; const s=DB.students.find(x=>x.name===f.name); if(!s) return '';
+      return `<div class="info-box" style="margin-top:10px">الصف/الفصل: <b>${esc(s.grade+'/'+s.section)}</b> · جوال ولي الأمر: <b>${esc(s.guardianPhone||'—')}</b></div>`; },
+    onCreate:(rec)=>{ if(rec.reason==='أخرى'&&rec.reasonOther) rec.reason='أخرى: '+rec.reasonOther;
+      const s=DB.students.find(x=>x.name===rec.name); rec.gradeSec = s? (s.grade+'/'+s.section) : ''; rec.guardianPhone = s? (s.guardianPhone||'') : ''; },
+    cols:[ {k:'name',label:'الطالب',render:r=>esc(r.name)},{k:'gradeSec',label:'الصف/الفصل',render:r=>esc(r.gradeSec||'—')},
+      {k:'receiver',label:'المستلم',render:r=>esc(r.receiver)},{k:'relation',label:'صلة القرابة',render:r=>esc(r.relation||'—')},
+      {k:'time',label:'الوقت',render:r=>esc(r.time||'—')},{k:'reason',label:'السبب',render:r=>esc(r.reason)},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
   tasks: { key:'tasks', title:'المهام', print:true, csv:true, logAdd:'إضافة مهمة',
     fields:[ {k:'title',label:'عنوان المهمة',required:true},{k:'assignee',label:'المكلَّف',type:'select',options:()=>DB.employees.map(e=>e.name),required:true},
       {k:'due',label:'تاريخ الاستحقاق',type:'date'},{k:'progress',label:'نسبة الإنجاز %',type:'number'},{k:'status',label:'الحالة',type:'select',options:['جارية','مكتملة','متأخرة'],required:true} ],
@@ -620,16 +640,11 @@ const GENERIC_CONFIGS = {
     fields:[ {k:'type',label:'النوع',type:'select',options:['متابعة مواظبة','متابعة سلوك','برنامج طلابي','تكريم وتحفيز','اجتماع أولياء أمور'],required:true},
       {k:'title',label:'العنوان',required:true},{k:'target',label:'الفئة المستهدفة'},{k:'notes',label:'التفاصيل',type:'textarea'},{k:'date',label:'التاريخ',type:'date'} ],
     cols:[ {k:'type',label:'النوع',render:r=>esc(r.type)},{k:'title',label:'العنوان',render:r=>esc(r.title)},{k:'target',label:'المستهدف',render:r=>esc(r.target||'—')},{k:'notes',label:'التفاصيل',render:r=>esc(r.notes||'—')},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
-  facilities: { key:'facilities', title:'التجهيزات والصيانة والأمن والسلامة', print:true, csv:true, logAdd:'بند تجهيزات/صيانة',
+  facilities: { key:'facilities', title:'التجهيزات والصيانة والأمن والسلامة', print:true, csv:true, edit:true, logAdd:'بند تجهيزات/صيانة',
     fields:[ {k:'item',label:'البند',required:true},{k:'cat',label:'التصنيف',type:'select',options:['تجهيزات','صيانة','أمن وسلامة']},
       {k:'location',label:'الموقع'},{k:'status',label:'الحالة',type:'select',options:['جديد','قيد التنفيذ','منجز'],required:true},{k:'notes',label:'ملاحظات',type:'textarea'},{k:'date',label:'التاريخ',type:'date'} ],
     cols:[ {k:'item',label:'البند',render:r=>esc(r.item)},{k:'cat',label:'التصنيف',render:r=>esc(r.cat||'—')},{k:'location',label:'الموقع',render:r=>esc(r.location||'—')},
-      {label:'الحالة',render:r=>pill(r.status, r.status==='منجز'?C.teal:r.status==='قيد التنفيذ'?C.amber:C.blue)},{k:'notes',label:'ملاحظات',render:r=>esc(r.notes||'—')},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] },
-  behaviorNotes: { key:'behaviorNotes', title:'ملاحظات السلوك والمواظبة', print:true, csv:true, logAdd:'رصد ملاحظة سلوك',
-    fields:[ {k:'student',label:'الطالب',type:'select',options:()=>DB.students.map(s=>s.name),required:true},
-      {k:'degree',label:'الدرجة',type:'select',options:['الأولى','الثانية','الثالثة','الرابعة','الخامسة'],required:true},
-      {k:'note',label:'الملاحظة',type:'textarea',required:true},{k:'date',label:'التاريخ',type:'date'} ],
-    cols:[ {k:'student',label:'الطالب',render:r=>esc(r.student)},{k:'degree',label:'الدرجة',render:r=>esc(r.degree)},{k:'note',label:'الملاحظة',render:r=>esc(r.note)},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] }
+      {label:'الحالة',render:r=>pill(r.status, r.status==='منجز'?C.teal:r.status==='قيد التنفيذ'?C.amber:C.blue)},{k:'notes',label:'ملاحظات',render:r=>esc(r.notes||'—')},{k:'date',label:'التاريخ',render:r=>fmtDate(r.date)} ] }
 };
 function lateCounter(){ const m={}; DB.lateArrivals.forEach(r=> m[r.name]=(m[r.name]||0)+1); return m; }
 function visitorCheckout(id){ update(d=>{ const x=d.visitors.find(v=>v.id===id); if(x) x.outTime=nowTime(); }); toast('تم تسجيل الخروج'); rerenderSection(); }
@@ -638,26 +653,48 @@ function genericSectionHTML(cfgKey){
   const cfg = GENERIC_CONFIGS[cfgKey];
   const list = DB[cfg.key] || [];
   const rows = cfg.dateFilter ? dateFiltered(list) : list;
+  const editing = !!(cfg.edit && FORM.genEditKey===cfgKey && FORM.genEditId);
+  if(editing && FORM.genEditLoaded!==FORM.genEditId){
+    const rec = list.find(r=>r.id===FORM.genEditId);
+    if(rec){ cfg.fields.forEach(f=>{ FORM[f.k]=rec[f.k]; }); FORM.genEditLoaded=FORM.genEditId; }
+  }
   const formFields = cfg.fields.filter(f=> !f.when || f.when(FORM)).map(f=>fieldWrap(f.label, renderFieldControl(f))).join('');
   const extraHtml = cfg.extra ? cfg.extra(FORM) : '';
   const formBody = `<div class="form-grid">${formFields}</div>${extraHtml}
-    <div class="row-gap">${btn('حفظ',`genericSubmit('${cfgKey}')`,'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`;
+    <div class="row-gap">${btn(editing?'حفظ التعديل':'حفظ',`genericSubmit('${cfgKey}')`,'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`;
   const cols = cfg.cols.map(c=>c.label).concat('إجراء');
   const tbl = tableHTML(cols, rows, (r,ci)=>{
     if(ci<cfg.cols.length){ const c=cfg.cols[ci]; return c.render? c.render(r) : esc(r[c.k]==null?'':r[c.k]); }
-    return `<button class="btn btn-red btn-sm" onclick="genericDelete('${cfg.key}','${r.id}')">حذف</button>`;
+    return cfg.edit
+      ? `<div class="td-actions">${btn('تعديل',`genericEdit('${cfgKey}','${r.id}')`,'ghost')}${btn('حذف',`genericDelete('${cfg.key}','${r.id}')`,'red')}</div>`
+      : `<button class="btn btn-red btn-sm" onclick="genericDelete('${cfg.key}','${r.id}')">حذف</button>`;
   });
   const listBody = (cfg.dateFilter?filterBarHTML():'') + tbl;
   let actions='';
   if(cfg.csv) actions += `<button class="btn btn-ghost btn-sm" onclick="genericExportCSV('${cfgKey}')">تصدير CSV</button>`;
   if(cfg.print) actions += `<button class="btn btn-gold btn-sm" onclick="genericPrint('${cfgKey}')">طباعة</button>`;
-  return card(cfg.formTitle||('إضافة — '+cfg.title), formBody) + card(cfg.title, listBody, actions);
+  return card(cfg.formTitle||((editing?'تعديل — ':'إضافة — ')+cfg.title), formBody) + card(cfg.title, listBody, actions);
+}
+function genericEdit(cfgKey, id){
+  FORM = { genEditKey:cfgKey, genEditId:id };
+  rerenderSection();
 }
 function genericSubmit(cfgKey){
   const cfg = GENERIC_CONFIGS[cfgKey];
   for(const f of cfg.fields){
     if(f.when && !f.when(FORM)) continue;
     if(f.required && !FORM[f.k]){ toast('يرجى تعبئة: '+f.label,'red'); return; }
+  }
+  if(cfg.edit && FORM.genEditKey===cfgKey && FORM.genEditId){
+    update(d=>{ const rec=d[cfg.key].find(r=>r.id===FORM.genEditId); if(!rec) return;
+      cfg.fields.forEach(f=>{ rec[f.k] = FORM[f.k] || ''; });
+      if(cfg.onCreate) cfg.onCreate(rec, FORM);
+    });
+    logAction('تعديل سجل في '+cfg.title);
+    clearF();
+    toast('تم التعديل');
+    rerenderSection();
+    return;
   }
   const rec = { id:uid(), date: FORM.date || todayStr() };
   cfg.fields.forEach(f=>{ rec[f.k] = FORM[f.k] || ''; });
@@ -683,14 +720,13 @@ function genericPrint(cfgKey){
   printReport('تقرير — '+cfg.title, meta, cfg.cols.map(c=>c.label), rows.map(r=>cfg.cols.map(c=> r[c.k]||'—')));
 }
 
-// ===== MEETING ROOM (اجتماعات / تعاميم / محادثة) =====
-let CHAT_EXPANDED = {};
+// ===== MEETING ROOM (اجتماعات / تعاميم) =====
 function isMgmtUser(){ return !!USER && (USER.role==='admin'||USER.role==='manager'||USER.meetingRoomManager===true); }
 
 function secMeetingRoom(){
   const tab = SUBTAB.meetingRoom||'meetings';
-  const tabs=[['meetings','الاجتماعات'],['circulars','التعاميم'],['chat','المحادثة']];
-  const body = tab==='circulars' ? circularsTabHTML() : tab==='chat' ? chatTabHTML() : meetingsTabHTML();
+  const tabs=[['meetings','الاجتماعات'],['circulars','التعاميم']];
+  const body = tab==='circulars' ? circularsTabHTML() : meetingsTabHTML();
   return subTabsHTML('meetingRoom',tabs) + body;
 }
 
@@ -705,6 +741,7 @@ function meetingsTabHTML(){
       return `<label class="invitee-chip"><input type="checkbox" ${checked} onchange="toggleInvitee('${u.id}')"> ${esc(u.username)} <span style="color:${C.muted}">(${esc((ROLES[u.role]||{}).label||u.role)})</span></label>`;
     }).join('');
     html += card('إضافة اجتماع', `<div class="form-grid">
+        ${fieldWrap('رقم الاجتماع', renderFieldControl({k:'mNumber',ph:'مثال: 1'}))}
         ${fieldWrap('عنوان الاجتماع', renderFieldControl({k:'mTitle',ph:'مثال: اجتماع مجلس المعلمين'}))}
         ${fieldWrap('التاريخ', renderFieldControl({k:'mDate',type:'date'}))}
         ${fieldWrap('الوقت', renderFieldControl({k:'mTime',type:'time'}))}
@@ -712,6 +749,7 @@ function meetingsTabHTML(){
         ${fieldWrap('السماح للمدعوين بالرد والتعليق', renderFieldControl({k:'mAllowReplies',type:'select',options:[{v:'yes',l:'نعم'},{v:'no',l:'لا — عرض فقط'}]}))}
       </div>
       ${fieldWrap('جدول الأعمال / التفاصيل', renderFieldControl({k:'mAgenda',type:'textarea'}))}
+      ${fieldWrap('التوصيات', renderFieldControl({k:'mRecommendations',type:'textarea'}))}
       <div class="field"><span style="display:block;margin-bottom:6px">دعوة الأعضاء المسجلين</span><div class="invitee-list">${usersHtml||'لا يوجد مستخدمون مسجلون'}</div></div>
       <div class="row-gap">${btn('إرسال الدعوة وإضافة الاجتماع',"meetingAdd()",'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`);
   }
@@ -721,9 +759,10 @@ function meetingsTabHTML(){
     const inviteeNames = (m.invitees||[]).map(iid=>{ const u=DB.users.find(x=>x.id===iid); return u?u.username:null; }).filter(Boolean);
     const canReply = m.allowReplies || mgmt;
     const replies = (m.replies||[]).map(r=> `<div class="chat-msg"><b>${esc(r.username)}</b> <span style="color:${C.muted};font-size:12px">${esc(r.time)}</span><div>${esc(r.text)}</div></div>`).join('') || `<div style="color:${C.muted};font-size:13px">لا توجد ردود بعد</div>`;
-    return card(esc(m.title), `
+    return card((m.number?'#'+esc(m.number)+' — ':'')+esc(m.title), `
       <div style="color:${C.muted};font-size:13px;margin-bottom:8px">${fmtDate(m.date)} · ${esc(m.time||'—')} ${m.location?'· '+esc(m.location):''}</div>
       ${m.agenda?`<div style="margin-bottom:10px;white-space:pre-wrap">${esc(m.agenda)}</div>`:''}
+      ${m.recommendations?`<div style="margin-bottom:10px;background:#F8FAFC;border:1px dashed ${C.border};border-radius:10px;padding:10px 14px"><b>التوصيات:</b><div style="white-space:pre-wrap;margin-top:4px">${esc(m.recommendations)}</div></div>`:''}
       <div style="font-size:13px;color:${C.muted};margin-bottom:10px">المدعوون: ${inviteeNames.length?esc(inviteeNames.join('، ')):'—'} &nbsp; ${pill(m.allowReplies?'الرد متاح للمدعوين':'الرد للإدارة فقط', m.allowReplies?C.teal:C.muted)}</div>
       <div class="chat-thread">${replies}</div>
       ${canReply?`<div class="row-gap" style="margin-top:8px"><input class="ctl" id="reply_${m.id}" placeholder="اكتب رداً…" value="${esc(FORM['reply_'+m.id]||'')}" oninput="setF('reply_${m.id}',this.value)" onkeydown="if(event.key==='Enter')meetingReply('${m.id}');"><button class="btn btn-primary btn-sm" onclick="meetingReply('${m.id}')">إرسال</button></div>`:''}
@@ -734,15 +773,16 @@ function meetingsTabHTML(){
 function meetingPrint(id){
   const m = (DB.meetings||[]).find(x=>x.id===id); if(!m) return;
   const inviteeNames = (m.invitees||[]).map(iid=>{ const u=DB.users.find(x=>x.id===iid); return u?u.username:null; }).filter(Boolean);
-  const meta = [['التاريخ',fmtDate(m.date)],['الوقت',m.time||'—'],['المكان',m.location||'—'],['عدد المدعوين',inviteeNames.length]];
-  const extra = m.agenda? `<div class="formbox"><b>جدول الأعمال / التفاصيل:</b><br>${esc(m.agenda)}</div>` : '';
+  const meta = [['رقم الاجتماع',m.number||'—'],['التاريخ',fmtDate(m.date)],['الوقت',m.time||'—'],['المكان',m.location||'—'],['عدد الحضور',inviteeNames.length]];
+  let extra = m.agenda? `<div class="formbox"><b>جدول الأعمال / التفاصيل:</b><br>${esc(m.agenda)}</div>` : '';
+  if(m.recommendations) extra += `<div class="formbox" style="margin-top:10px"><b>التوصيات:</b><br>${esc(m.recommendations)}</div>`;
   printReport('محضر اجتماع: '+m.title, meta, ['#','اسم العضو','التوقيع'], inviteeNames.map((n,i)=>[i+1,n,'']), {html:extra});
 }
 function toggleInvitee(uid){ FORM.mInvitees = FORM.mInvitees||[]; const i=FORM.mInvitees.indexOf(uid); if(i>-1) FORM.mInvitees.splice(i,1); else FORM.mInvitees.push(uid); }
 function meetingAdd(){
   if(!isMgmtUser()) return;
   if(!FORM.mTitle||!FORM.mDate){ toast('يرجى تعبئة عنوان الاجتماع والتاريخ','red'); return; }
-  const rec = { id:uid(), title:FORM.mTitle, date:FORM.mDate, time:FORM.mTime||'', location:FORM.mLocation||'', agenda:FORM.mAgenda||'',
+  const rec = { id:uid(), number:FORM.mNumber||'', title:FORM.mTitle, date:FORM.mDate, time:FORM.mTime||'', location:FORM.mLocation||'', agenda:FORM.mAgenda||'', recommendations:FORM.mRecommendations||'',
     allowReplies: FORM.mAllowReplies==='yes', invitees: FORM.mInvitees||[], createdBy: USER.username, replies:[] };
   update(d=>{ d.meetings = [rec, ...(d.meetings||[])]; });
   logAction('إضافة اجتماع: '+rec.title);
@@ -769,25 +809,40 @@ function circularsTabHTML(){
   const mgmt = isMgmtUser();
   let html='';
   if(mgmt){
+    const targets = FORM.cTargets||[];
+    const usersHtml = DB.users.filter(u=>u.active).map(u=>{
+      const checked = targets.includes(u.id)?'checked':'';
+      return `<label class="invitee-chip"><input type="checkbox" ${checked} onchange="toggleCircularTarget('${u.id}')"> ${esc(u.username)}</label>`;
+    }).join('');
     html += card('إصدار تعميم', `<div class="form-grid">
         ${fieldWrap('عنوان التعميم', renderFieldControl({k:'cTitle',ph:'عنوان التعميم'}))}
         ${fieldWrap('التاريخ', renderFieldControl({k:'cDate',type:'date'}))}
+        ${fieldWrap('الجمهور المستهدف', renderFieldControl({k:'cAudience',type:'select',options:[{v:'all',l:'الجميع'},{v:'group',l:'مجموعة محددة'}]}))}
       </div>
       ${fieldWrap('نص التعميم', renderFieldControl({k:'cBody',type:'textarea'}))}
+      ${FORM.cAudience==='group'?`<div class="field"><span style="display:block;margin-bottom:6px">اختر المستلمين</span><div class="invitee-list">${usersHtml||'لا يوجد مستخدمون مسجلون'}</div></div>`:''}
       <label style="font-size:13px;font-weight:600;display:block;margin-top:10px">صورة التعميم (اختياري، ≤ 400KB): <input type="file" accept="image/*" onchange="circularImageSelect(this.files[0])" style="font-size:12px"></label>
       ${FORM.cImage?`<img src="${FORM.cImage}" style="max-height:120px;border-radius:8px;border:1px solid ${C.border};margin-top:8px;display:block">`:''}
       <div class="row-gap">${btn('نشر التعميم',"circularAdd()",'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`);
   }
-  const list = (DB.circulars||[]).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const list = (DB.circulars||[]).filter(c=> mgmt || c.audience!=='group' || (c.targets||[]).includes(USER.id)).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
   if(!list.length){ html += card('التعاميم', `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد تعاميم</div>`); return html; }
-  html += list.map(c=> card(esc(c.title), `
-      <div style="color:${C.muted};font-size:13px;margin-bottom:8px">${fmtDate(c.date)} · بواسطة ${esc(c.createdBy)}</div>
+  html += list.map(c=>{
+    const isTarget = c.audience!=='group' || (c.targets||[]).includes(USER.id);
+    const acked = (c.ackBy||[]).includes(USER.id);
+    const ackAction = (!mgmt && isTarget) ? (acked? `<div class="row-gap" style="margin-top:8px">${pill('تم الاطلاع ✓',C.teal)}</div>` : `<div class="row-gap" style="margin-top:8px"><button class="btn btn-teal btn-sm" onclick="circularAck('${c.id}')">تم الاطلاع</button></div>`) : '';
+    const totalTargets = c.audience==='group' ? (c.targets||[]).length : DB.users.filter(u=>u.active).length;
+    const ackSummary = mgmt ? `<div style="font-size:12px;color:${C.muted};margin-top:8px">اطّلع عليه ${( c.ackBy||[]).length} من ${totalTargets}</div>` : '';
+    return card(esc(c.title), `
+      <div style="color:${C.muted};font-size:13px;margin-bottom:8px">${fmtDate(c.date)} · بواسطة ${esc(c.createdBy)} · ${c.audience==='group'?'مجموعة محددة':'الجميع'}</div>
       <div style="white-space:pre-wrap">${esc(c.body)}</div>
       ${c.image?`<img src="${c.image}" style="max-width:100%;border-radius:8px;border:1px solid ${C.border};margin-top:10px;cursor:zoom-in" onclick="window.open('${c.image}','_blank')">`:''}
-    `, mgmt?`<button class="btn btn-red btn-sm" onclick="circularDelete('${c.id}')">حذف</button>`:'')
-  ).join('');
+      ${ackSummary}${ackAction}
+    `, mgmt?`<button class="btn btn-red btn-sm" onclick="circularDelete('${c.id}')">حذف</button>`:'');
+  }).join('');
   return html;
 }
+function toggleCircularTarget(uid){ FORM.cTargets = FORM.cTargets||[]; const i=FORM.cTargets.indexOf(uid); if(i>-1) FORM.cTargets.splice(i,1); else FORM.cTargets.push(uid); }
 function circularImageSelect(file){
   if(!file) return;
   if(file.size>400*1024){ toast('حجم الصورة يتجاوز 400KB','red'); return; }
@@ -799,89 +854,24 @@ function circularImageSelect(file){
 function circularAdd(){
   if(!isMgmtUser()) return;
   if(!FORM.cTitle||!FORM.cBody){ toast('يرجى تعبئة عنوان التعميم ونصه','red'); return; }
-  const rec = { id:uid(), title:FORM.cTitle, body:FORM.cBody, date:FORM.cDate||todayStr(), createdBy:USER.username, image:FORM.cImage||'' };
+  const audience = FORM.cAudience==='group' ? 'group' : 'all';
+  const rec = { id:uid(), title:FORM.cTitle, body:FORM.cBody, date:FORM.cDate||todayStr(), createdBy:USER.username, image:FORM.cImage||'',
+    audience, targets: audience==='group'? (FORM.cTargets||[]) : [], ackBy:[] };
   update(d=>{ d.circulars = [rec, ...(d.circulars||[])]; });
   logAction('إصدار تعميم: '+rec.title);
   clearF();
   toast('تم نشر التعميم');
   rerenderSection();
 }
+function circularAck(id){
+  update(d=>{ const c=d.circulars.find(x=>x.id===id); if(!c) return; c.ackBy=c.ackBy||[]; if(!c.ackBy.includes(USER.id)) c.ackBy.push(USER.id); });
+  toast('تم تسجيل الاطلاع');
+  rerenderSection();
+}
 function circularDelete(id){
   if(!isMgmtUser()) return;
   update(d=>{ d.circulars = d.circulars.filter(x=>x.id!==id); });
   toast('تم حذف التعميم');
-  rerenderSection();
-}
-
-// ---- المحادثة (تُنظَّم على شكل محادثات يمكن إغلاقها وبدء محادثة جديدة) ----
-function chatTabHTML(){
-  const mgmt = isMgmtUser();
-  const threads = DB.chatThreads||[];
-  const openThread = threads.find(t=>!t.closed);
-  let html='';
-  if(openThread){
-    const msgs = (DB.chatMessages||[]).filter(m=>m.threadId===openThread.id);
-    const list = msgs.length ? msgs.map(m=>{
-      const mine = m.userId===USER.id;
-      const canDel = mgmt || mine;
-      return `<div class="chat-msg ${mine?'mine':''}">
-        <div><b>${esc(m.username)}</b> <span style="color:${C.muted};font-size:12px">${esc(m.time)}</span> ${canDel?`<button onclick="chatDelete('${m.id}')" style="font-size:12px;color:${C.red};border:none;background:none;cursor:pointer">حذف</button>`:''}</div>
-        <div>${esc(m.text)}</div>
-      </div>`;
-    }).join('') : `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد رسائل بعد — ابدأ المحادثة</div>`;
-    html += card(esc(openThread.title), `
-      <div class="chat-thread" id="chatThread">${list}</div>
-      <div class="row-gap" style="margin-top:10px">
-        <input class="ctl" id="chatInput" placeholder="اكتب رسالة…" value="${esc(FORM.chatMsg||'')}" oninput="setF('chatMsg',this.value)" onkeydown="if(event.key==='Enter')chatSend();">
-        <button class="btn btn-primary btn-sm" onclick="chatSend()">إرسال</button>
-      </div>`,
-      mgmt?`<button class="btn btn-red btn-sm" onclick="chatCloseThread('${openThread.id}')">إغلاق المحادثة</button>`:'');
-  }else{
-    html += card('المحادثة بين الأعضاء', `
-      <div style="color:${C.muted};padding:8px 2px 16px;text-align:center">لا توجد محادثة مفتوحة حالياً — أرسل رسالة لبدء محادثة جديدة</div>
-      <div class="row-gap">
-        <input class="ctl" id="chatInput" placeholder="اكتب رسالة…" value="${esc(FORM.chatMsg||'')}" oninput="setF('chatMsg',this.value)" onkeydown="if(event.key==='Enter')chatSend();">
-        <button class="btn btn-primary btn-sm" onclick="chatSend()">إرسال</button>
-      </div>`);
-  }
-  const closed = threads.filter(t=>t.closed).slice().sort((a,b)=> (b.closedAt||'').localeCompare(a.closedAt||''));
-  if(closed.length){
-    const items = closed.map(t=>{
-      const tmsgs = (DB.chatMessages||[]).filter(m=>m.threadId===t.id);
-      const expanded = !!CHAT_EXPANDED[t.id];
-      const inner = expanded ? `<div class="chat-thread" style="margin-top:8px">${tmsgs.map(m=>`<div class="chat-msg"><b>${esc(m.username)}</b> <span style="color:${C.muted};font-size:12px">${esc(m.time)}</span><div>${esc(m.text)}</div></div>`).join('')||'—'}</div>` : '';
-      return `<div style="border-bottom:1px solid ${C.border};padding:10px 2px">
-        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="chatToggleThread('${t.id}')">
-          <div><b>${esc(t.title)}</b> <span style="color:${C.muted};font-size:12px">(${tmsgs.length} رسالة) — أُغلقت ${esc(t.closedAt||'')} بواسطة ${esc(t.closedBy||'')}</span></div>
-          <span style="color:${C.muted}">${expanded?'▲':'▼'}</span>
-        </div>${inner}</div>`;
-    }).join('');
-    html += card('محادثات سابقة (مغلقة)', items);
-  }
-  return html;
-}
-function chatSend(){
-  const text = (FORM.chatMsg||'').trim();
-  if(!text) return;
-  update(d=>{
-    d.chatThreads = d.chatThreads||[];
-    let t = d.chatThreads.find(x=>!x.closed);
-    if(!t){ t = { id:uid(), title:'محادثة '+fmtDate(todayStr()), date:todayStr(), closed:false, createdBy:USER.username }; d.chatThreads.push(t); }
-    d.chatMessages = [...(d.chatMessages||[]), {id:uid(), threadId:t.id, userId:USER.id, username:USER.username, text, time:nowStamp()}];
-  });
-  setF('chatMsg','');
-  rerenderSection();
-  const th=document.getElementById('chatThread'); if(th) th.scrollTop = th.scrollHeight;
-}
-function chatCloseThread(id){
-  if(!isMgmtUser()) return;
-  update(d=>{ const t=(d.chatThreads||[]).find(x=>x.id===id); if(t){ t.closed=true; t.closedBy=USER.username; t.closedAt=nowStamp(); } });
-  toast('تم إغلاق المحادثة — سيتم فتح محادثة جديدة عند إرسال أول رسالة');
-  rerenderSection();
-}
-function chatToggleThread(id){ CHAT_EXPANDED[id]=!CHAT_EXPANDED[id]; rerenderSection(); }
-function chatDelete(id){
-  update(d=>{ const m=(d.chatMessages||[]).find(x=>x.id===id); if(m && !(isMgmtUser()||m.userId===USER.id)) return; d.chatMessages = (d.chatMessages||[]).filter(x=>x.id!==id); });
   rerenderSection();
 }
 
@@ -962,7 +952,7 @@ function pmReply(otherId){
 // ===== BENEFICIARY =====
 function secBeneficiary(){
   const tab = SUBTAB.beneficiary||'visitors';
-  const tabs=[['visitors','الزوار'],['late','الطلاب المتأخرون'],['early','الاستئذان والخروج المبكر']];
+  const tabs=[['visitors','الزوار'],['late','الطلاب المتأخرون'],['early','الاستئذان']];
   const keyMap={visitors:'visitors',late:'lateArrivals',early:'earlyLeaves'};
   return subTabsHTML('beneficiary',tabs) + genericSectionHTML(keyMap[tab]);
 }
@@ -1365,10 +1355,18 @@ function secCounselor(){
   const alert = `<div class="alert-box"><b>تنبيه (المادة 35): </b>الموجّه الطلابي لا يُشرك في رصد درجات السلوك ولا تنفيذ الحسم، ودوره دراسة الحالة وعلاجها.</div>`;
   let content;
   if(tab==='cases') content = counselCasesHTML();
-  else if(tab==='behavior') content = genericSectionHTML('behaviorNotes');
+  else if(tab==='behavior') content = counselorBehaviorView();
   else if(tab==='letters') content = counselorLetters();
   else content = behaviorPlan();
   return subTabsHTML('counselor',tabs) + alert + content;
+}
+function counselorBehaviorView(){
+  const list = (DB.behaviorRecords||[]).slice();
+  const tbl = tableHTML(['الطالب','الدرجة','المشكلة','الإجراء المطبّق','الحسم','التاريخ'], list, (r,ci)=>{
+    switch(ci){ case 0:return esc(r.student); case 1:return pill('الدرجة '+r.degree,[C.gold,C.amber,C.blue,C.red,'#7a1f16'][r.degree-1]); case 2:return esc(r.problem);
+      case 3:return `<span style="font-size:12.5px">${esc(r.procedure)}</span>`; case 4:return r.deduct?('−'+r.deduct):'—'; case 5:return fmtDate(r.date); default:return ''; }
+  });
+  return card('سجل المشكلات السلوكية (عرض فقط — يُسجَّل من وكيل شؤون الطلاب)', tbl, btn('طباعة','behaviorPrintRecords()','gold'));
 }
 function counselCasesHTML(){
   const f = FORM;
