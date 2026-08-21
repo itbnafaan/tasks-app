@@ -15,6 +15,7 @@ try { if (window.supabase) supa = window.supabase.createClient(SUPABASE_URL, SUP
 const C = { navy:'#0F2849', gold:'#C9A227', teal:'#1D9E75', red:'#C0392B', amber:'#E0A100', blue:'#2563A8', bg:'#F5F7FA', border:'#E3E8EF', muted:'#64748b' };
 const SCHOOL = { name:'مدرسة عثمان بن عفان الابتدائية', edu:'إدارة تعليم جدة', ministry:'وزارة التعليم', principal:'الأستاذ طلال حضيض السلمي' };
 const FOOTER = 'تصميم وإعداد الخدمات الإلكترونية · عبدالله العتيبي';
+function footerHTML(){ return 'تصميم وإعداد الخدمات الإلكترونية · <a href="mailto:abdullah@alotaibi.sa" style="color:inherit">عبدالله العتيبي</a>'; }
 const STORAGE_KEY = 'obf_school_system_v1';
 const DAYS = ['sun','mon','tue','wed','thu'];
 const DAY_AR = { sun:'الأحد', mon:'الاثنين', tue:'الثلاثاء', wed:'الأربعاء', thu:'الخميس' };
@@ -322,7 +323,7 @@ function renderForcePw(){
       <button class="login-btn" style="margin-top:16px" onclick="forcePwSubmit()">حفظ ومتابعة</button>
       <button class="btn btn-ghost" style="margin-top:10px;width:100%" onclick="logout()">تسجيل الخروج</button>
     </div>
-    <div class="login-foot">${esc(FOOTER)}</div>
+    <div class="login-foot">${footerHTML()}</div>
   </div></div>`;
 }
 function rerenderSection(){
@@ -500,7 +501,7 @@ function renderLogin(){
       <button class="login-btn" onclick="doLogin()">دخول</button>
       ${anyDefault?`<div class="login-hint"><b>حسابات افتراضية (تختفي بعد تغيير كلمتها):</b><br>المسؤول — <code>admin / admin1234</code><br>مدير المدرسة — <code>manager / manager1234</code></div>`:''}
     </div>
-    <div class="login-foot">${esc(FOOTER)}</div>
+    <div class="login-foot">${footerHTML()}</div>
   </div></div>`;
 }
 
@@ -514,7 +515,7 @@ function renderApp(){
     <aside class="sidebar ${SIDEBAR_OPEN?'open':''}">
       <div class="sidebar-head"><div class="b">${esc(SCHOOL.name)}</div><div class="m">${esc(SCHOOL.edu)}</div></div>
       <nav class="sidebar-nav">${navHtml}</nav>
-      <div class="sidebar-foot">${esc(FOOTER)}</div>
+      <div class="sidebar-foot">${footerHTML()}</div>
     </aside>
     <div class="main-col">
       <header class="topbar">
