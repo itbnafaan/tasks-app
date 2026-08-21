@@ -14,8 +14,8 @@ try { if (window.supabase) supa = window.supabase.createClient(SUPABASE_URL, SUP
 // ===== CONSTANTS =====
 const C = { navy:'#0F2849', gold:'#C9A227', teal:'#1D9E75', red:'#C0392B', amber:'#E0A100', blue:'#2563A8', bg:'#F5F7FA', border:'#E3E8EF', muted:'#64748b' };
 const SCHOOL = { name:'مدرسة عثمان بن عفان الابتدائية', edu:'إدارة تعليم جدة', ministry:'وزارة التعليم', principal:'الأستاذ طلال حضيض السلمي' };
-const FOOTER = 'تصميم وإعداد الخدمات الإلكترونية · عبدالله العتيبي';
-function footerHTML(){ return 'تصميم وإعداد الخدمات الإلكترونية · <a href="mailto:abdullah@alotaibi.sa" style="color:inherit">عبدالله العتيبي</a>'; }
+const FOOTER = 'تصميم وإعداد عبدالله العتيبي';
+function footerHTML(){ return 'تصميم وإعداد <a href="mailto:abdullah@alotaibi.sa" style="color:inherit">عبدالله العتيبي</a>'; }
 const STORAGE_KEY = 'obf_school_system_v1';
 const DAYS = ['sun','mon','tue','wed','thu'];
 const DAY_AR = { sun:'الأحد', mon:'الاثنين', tue:'الثلاثاء', wed:'الأربعاء', thu:'الخميس' };
