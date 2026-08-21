@@ -36,6 +36,7 @@ const NAV = [
   { id:'deputyEdu', label:'وكيل الشؤون التعليمية', icon:'📚' },
   { id:'deputyStudent', label:'وكيل شؤون الطلاب', icon:'🤝' },
   { id:'deputySchool', label:'وكيل الشؤون المدرسية', icon:'🏫' },
+  { id:'techVisits', label:'الزيارة الفنية', icon:'🔬' },
   { id:'committees', label:'اللجان', icon:'🧑‍🤝‍🧑' },
   { id:'commsHub', label:'الاتصال المؤسسي', icon:'📣' },
   { id:'reports', label:'التقارير', icon:'📈' },
@@ -48,9 +49,9 @@ const ALL_SECTIONS = NAV.map(n=>n.id);
 const ROLES = {
   admin:   { label:'مسؤول النظام', sections:'ALL' },
   manager: { label:'مدير المدرسة', sections:'ALL' },
-  deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu','meetingRoom','messages'] },
-  deputyStudent: { label:'وكيل شؤون الطلاب', sections:['deputyStudent','behavior','meetingRoom','messages','studentFiles'] },
-  deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence','meetingRoom','messages'] },
+  deputyEdu:     { label:'وكيل الشؤون التعليمية', sections:['deputyEdu','meetingRoom','messages','techVisits'] },
+  deputyStudent: { label:'وكيل شؤون الطلاب', sections:['deputyStudent','behavior','meetingRoom','messages','studentFiles','techVisits'] },
+  deputySchool:  { label:'وكيل الشؤون المدرسية', sections:['deputySchool','teacherAbsence','meetingRoom','messages','techVisits'] },
   counselor: { label:'الموجه الطلابي', sections:['counselor','meetingRoom','messages','studentFiles'] },
   beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary','meetingRoom','messages'] },
   attendance: { label:'راصد الحضور', sections:['attendance','meetingRoom','messages'] },
@@ -106,7 +107,7 @@ function defaultStore(){
     attendance:{}, periodIncidents:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
-    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[], commsActivities:[],
+    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[], commsActivities:[], techVisits:[],
     log:[]
   };
 }
@@ -535,7 +536,7 @@ function renderSectionBody(){
     dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, studentFiles:secStudentFiles, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
-    committees:secCommittees, commsHub:secCommsHub, reports:secReports,
+    committees:secCommittees, commsHub:secCommsHub, reports:secReports, techVisits:secTechVisits,
     users:secUsers, log:secLog, settings:secSettings
   };
   const fn = map[SECTION];
@@ -783,6 +784,186 @@ function commsPrint(){
       ${a.image?`<img src="${a.image}" style="max-width:260px;margin-top:8px;border-radius:6px">`:''}
     </div>`).join('') || '<p style="color:#64748b;font-size:13px">لا توجد عناصر</p>';
   printReport(title, meta, null, null, {html: extra});
+}
+
+// ===== الزيارة الفنية (بطاقة تشخيص قياس التحصيل) =====
+const TECH_VISIT_METHODS = ['الزيارة الصفية والاجتماع بالمعلم','معرفة مدى مشاركته في الأنشطة الخارجية للمادة','الاطلاع على الإعداد الكتابي للدرس','مناقشة مدير المدرسة','إجراء اختبار قصير للطلاب','الاطلاع على الواجبات والتطبيقات','زيارة الموجه الطلابي','الاطلاع على التقويم والاختبارات'];
+const TECH_VISIT_CATEGORIES = [
+  { key:'resp', label:'المسؤولية', items:['تطبيق قواعد السلوك الوظيفي وأخلاقيات مهنة التعليم'] },
+  { key:'comm', label:'التواصل والتعاون', items:['التعاون الإيجابي في بيئة العمل','الالتزام بآداب الحوار شفهياً وكتابياً'] },
+  { key:'prof', label:'التطوير المهني', items:['الالتزام بخطة التطوير المهني','تبادل الخبرات المهنية والتخصصية مع زملائه وتفعيل مجتمعات التعلم المهنية','تقديم إنتاج معرفي'] },
+  { key:'plan', label:'التخطيط والإعداد للدرس', items:['تصميم خطة فصلية للمقرر','التخطيط للدرس وفق منهجية علمية واضحة'] },
+  { key:'strat', label:'تطبيق إستراتيجيات التعلم', items:['التهيئة المناسبة لدعم أهداف التعلم','تنفيذ درس يحقق أهداف التعلم','توظيف تقنيات ووسائل تعليمية تحقق أهداف التعلم','استخدام منصات وتطبيقات التعليم عن بعد بما يربط بأنماط الطلاب واحتياجاتهم','تقديم مادة علمية صحيحة ترتبط بأهداف التعلم وتناسب خبرات الطلاب','تطبيق إستراتيجيات تعليمية متنوعة تحقق أهداف التعلم بما يناسب أنماط الطلاب المختلفة','ربط الدرس بواقع الحياة وتكامله مع المواد الأخرى'] },
+  { key:'apply', label:'تطبيقات التعلم', items:['طرح أسئلة صفية مناسبة مع مراعاتها للفروق الفردية','إشراك الطلاب في أنشطة الدرس بما يحقق العدالة بينهم'] },
+  { key:'eval', label:'تقويم التعلم', items:['تشخيص مستويات الطلاب بأساليب وأدوات متنوعة','بناء خطة متكاملة لتعزيز الطلاب وفق احتياجهم مع مراعاة التميز ومعالجة الضعف','توظيف التطبيقات الصفية والمنزلية في تقويم الطلاب مع مراعاة مستوياتهم'] },
+  { key:'env', label:'بيئة التعلم', items:['تهيئة بيئة تعليمية مناسبة بنائية ومعززة ومحفزة للتعلم','إدارة مشاركات واستفسارات الطلاب الصوتية والمكتوبة بفاعلية','إدارة واستثمار وقت التعلم بكفاءة عالية'] },
+  { key:'ach', label:'التحصيل الدراسي', items:['مستوى تفاعل الطلاب خلال الدرس','مستوى تحصيل الطلاب العلمي'] }
+];
+function techVisitCatScore(cat){
+  const vals = cat.items.map((_,i)=> +(FORM['tv_'+cat.key+'_'+i]||0)).filter(v=>v>0);
+  if(!vals.length) return 0;
+  return Math.round((vals.reduce((a,b)=>a+b,0)/vals.length)*10)/10;
+}
+function techVisitTeacherPick(v){
+  const e = DB.employees.find(x=>x.id===v);
+  FORM.tvTeacherId = v;
+  if(e){ FORM.tvNationality=e.nationality||''; FORM.tvQual=e.qualification||''; FORM.tvQualYear=e.qualYear||''; FORM.tvSpec=e.specialization||''; FORM.tvTeachField=e.teachingField||''; FORM.tvHireDate=e.hireDateSchool||''; }
+  rerenderSection();
+}
+function techVisitToggleMethod(m){
+  FORM.tvMethods = FORM.tvMethods||[];
+  const i = FORM.tvMethods.indexOf(m);
+  if(i>-1) FORM.tvMethods.splice(i,1); else FORM.tvMethods.push(m);
+  rerenderSection();
+}
+function secTechVisits(){
+  const editing = !!FORM.tvEditId;
+  const teacher = DB.employees.find(e=>e.id===FORM.tvTeacherId);
+  let html = card(editing?'تعديل زيارة فنية':'إضافة زيارة فنية', `
+    <div class="form-grid">
+      ${fieldWrap('اسم المعلم', `<select class="ctl" onchange="techVisitTeacherPick(this.value)"><option value="">— اختر —</option>${DB.employees.map(e=>`<option value="${e.id}" ${FORM.tvTeacherId===e.id?'selected':''}>${esc(e.name)}</option>`).join('')}</select>`)}
+      ${fieldWrap('تاريخ الزيارة', renderFieldControl({k:'tvDate',type:'date'}))}
+      ${fieldWrap('رقم الزيارة', renderFieldControl({k:'tvNumber'}))}
+      ${fieldWrap('نوع الزيارة', renderFieldControl({k:'tvCategory',type:'select',options:['إشرافية','تعاونية','تبادلية']}))}
+      ${fieldWrap('نوع الحضور', renderFieldControl({k:'tvAttendMode',type:'select',options:['حضوري','عن بعد']}))}
+      ${fieldWrap('هل المعلم جديد على المادة؟', renderFieldControl({k:'tvNewToSubject',type:'select',options:[{v:'نعم',l:'نعم'},{v:'لا',l:'لا'}]}))}
+    </div>
+    ${teacher?`<div class="info-box" style="margin-top:10px">بيانات المعلم (من ملف الموظف — قابلة للتعديل هنا لهذه الزيارة فقط)</div>`:''}
+    <div class="form-grid" style="margin-top:10px">
+      ${fieldWrap('الجنسية', renderFieldControl({k:'tvNationality'}))}
+      ${fieldWrap('المؤهل', renderFieldControl({k:'tvQual'}))}
+      ${fieldWrap('سنة التخرج', renderFieldControl({k:'tvQualYear'}))}
+      ${fieldWrap('التخصص', renderFieldControl({k:'tvSpec'}))}
+      ${fieldWrap('مجال التدريس', renderFieldControl({k:'tvTeachField'}))}
+      ${fieldWrap('تاريخ المباشرة في المدرسة', renderFieldControl({k:'tvHireDate',type:'date'}))}
+    </div>
+    <div style="margin-top:16px;font-size:13px;font-weight:700">الأساليب التي اتبعها المشرف للتعرف على المستوى</div>
+    <div class="perm-grid" style="margin-top:8px">${TECH_VISIT_METHODS.map(m=>`<label class="perm-item"><input type="checkbox" ${(FORM.tvMethods||[]).includes(m)?'checked':''} onchange="techVisitToggleMethod(${esc(JSON.stringify(m))})"> ${esc(m)}</label>`).join('')}</div>
+    ${fieldWrap('أساليب أخرى', renderFieldControl({k:'tvMethodsOther'}))}
+
+    <div style="margin-top:16px;font-size:13px;font-weight:700">البيانات الأساسية</div>
+    <div class="form-grid" style="margin-top:8px">
+      ${fieldWrap('الصف', renderFieldControl({k:'tvGrade',type:'select',options:GRADES}))}
+      ${fieldWrap('الفصل', renderFieldControl({k:'tvSection',type:'select',options:SECTIONS_CLASS}))}
+      ${fieldWrap('الحصة', renderFieldControl({k:'tvPeriod'}))}
+      ${fieldWrap('المادة', renderFieldControl({k:'tvSubject'}))}
+      ${fieldWrap('عنوان الدرس', renderFieldControl({k:'tvLesson'}))}
+      ${fieldWrap('عدد طلاب الفصل', renderFieldControl({k:'tvTotal',type:'number'}))}
+      ${fieldWrap('عدد الحضور', renderFieldControl({k:'tvPresent',type:'number'}))}
+      ${fieldWrap('عدد الغياب', renderFieldControl({k:'tvAbsent',type:'number'}))}
+      ${fieldWrap('الغرض من الزيارة', renderFieldControl({k:'tvPurpose'}))}
+    </div>
+
+    <div style="margin-top:18px;font-size:13px;font-weight:700">التقييم (مستوى الأداء: 5 ممتاز – 4 جيد جدًا – 3 جيد – 2 مقبول – 1 ضعيف)</div>
+    ${TECH_VISIT_CATEGORIES.map(cat=>`
+      <div class="tbl-wrap" style="margin-top:10px">
+        <table><thead><tr><th style="min-width:220px">${esc(cat.label)} — الدرجة: ${techVisitCatScore(cat)}</th><th>5</th><th>4</th><th>3</th><th>2</th><th>1</th></tr></thead>
+        <tbody>${cat.items.map((it,i)=>`<tr><td style="text-align:right">${esc(it)}</td>${[5,4,3,2,1].map(v=>`<td style="text-align:center"><input type="radio" name="tv_${cat.key}_${i}" value="${v}" ${+(FORM['tv_'+cat.key+'_'+i]||0)===v?'checked':''} onchange="setF('tv_${cat.key}_${i}','${v}');rerenderSection();"></td>`).join('')}</tr>`).join('')}</tbody></table>
+      </div>`).join('')}
+
+    <div style="margin-top:18px;font-size:13px;font-weight:700">التوصيات والدعم</div>
+    <div class="form-grid" style="margin-top:8px">
+      ${fieldWrap('مستوى تنفيذ التوصيات السابقة', renderFieldControl({k:'tvImplementLevel',type:'textarea'}))}
+      ${fieldWrap('مواطن القوة والتميز', renderFieldControl({k:'tvStrengths',type:'textarea'}))}
+      ${fieldWrap('الدعم والخبرات المقدمة من المشرف', renderFieldControl({k:'tvSupport',type:'textarea'}))}
+      ${fieldWrap('التوصيات', renderFieldControl({k:'tvRecommendations',type:'textarea'}))}
+    </div>
+    <div class="form-grid" style="margin-top:8px">
+      ${fieldWrap('يستفاد من المعلم في', renderFieldControl({k:'tvBenefitFrom'}))}
+      ${fieldWrap('توصيات (ملخص)', renderFieldControl({k:'tvRecsSummary'}))}
+    </div>
+
+    <div style="margin-top:18px;font-size:13px;font-weight:700">الاحتياجات والبرامج المقترحة</div>
+    <div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>م</th><th>الاحتياجات</th><th>البرامج المقترحة/للمتابعة/للتطوير</th></tr></thead><tbody>
+      ${[1,2,3,4,5,6].map(n=>`<tr><td>${n}</td><td>${renderFieldControl({k:'tvNeed'+n})}</td><td>${renderFieldControl({k:'tvProg'+n})}</td></tr>`).join('')}
+    </tbody></table></div>
+
+    <div class="form-grid" style="margin-top:16px">
+      ${fieldWrap('المشرف التربوي', renderFieldControl({k:'tvSupervisor',ph:USER.username}))}
+    </div>
+    <div class="row-gap" style="margin-top:14px">${btn(editing?'حفظ التعديل':'حفظ الزيارة','techVisitSubmit()','primary')}${btn('مسح','clearF();rerenderSection();','ghost')}</div>
+  `);
+
+  const list = (DB.techVisits||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const rowsHtml = list.map((v,i)=>`<tr><td>${i+1}</td><td>${esc(v.teacherName)}</td><td>${esc(v.subject||'—')}</td><td>${fmtDate(v.date)}</td><td>${esc(v.number||'—')}</td>
+    <td><div class="td-actions">${btn('طباعة',`techVisitPrint('${v.id}')`,'gold')}${btn('تعديل',`techVisitEdit('${v.id}')`,'ghost')}${btn('حذف',`techVisitDelete('${v.id}')`,'red')}</div></td></tr>`).join('');
+  const listBody = list.length
+    ? `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>المعلم</th><th>المادة</th><th>التاريخ</th><th>رقم الزيارة</th><th>إجراء</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`
+    : `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد زيارات مسجّلة</div>`;
+  html += card('الزيارات الفنية المسجّلة ('+list.length+')', listBody);
+  return html;
+}
+function techVisitSubmit(){
+  const f = FORM;
+  if(!f.tvTeacherId){ toast('يرجى اختيار المعلم','red'); return; }
+  const teacher = DB.employees.find(e=>e.id===f.tvTeacherId);
+  const ratings = {};
+  TECH_VISIT_CATEGORIES.forEach(cat=>{ ratings[cat.key] = cat.items.map((_,i)=> +(f['tv_'+cat.key+'_'+i]||0)); });
+  const needs = [1,2,3,4,5,6].map(n=>({need:f['tvNeed'+n]||'', program:f['tvProg'+n]||''})).filter(x=>x.need||x.program);
+  const rec = {
+    id: f.tvEditId || uid(),
+    teacherId: f.tvTeacherId, teacherName: teacher?teacher.name:'',
+    nationality:f.tvNationality||'', qualification:f.tvQual||'', qualYear:f.tvQualYear||'', specialization:f.tvSpec||'', teachingField:f.tvTeachField||'', hireDateSchool:f.tvHireDate||'',
+    date: f.tvDate||todayStr(), number:f.tvNumber||'', category:f.tvCategory||'إشرافية', attendMode:f.tvAttendMode||'حضوري', newToSubject:f.tvNewToSubject||'لا',
+    methods:(f.tvMethods||[]).slice(), methodsOther:f.tvMethodsOther||'',
+    grade:f.tvGrade||'', section:f.tvSection||'', period:f.tvPeriod||'', subject:f.tvSubject||'', lesson:f.tvLesson||'', total:f.tvTotal||'', present:f.tvPresent||'', absent:f.tvAbsent||'', purpose:f.tvPurpose||'',
+    ratings,
+    implementLevel:f.tvImplementLevel||'', strengths:f.tvStrengths||'', support:f.tvSupport||'', recommendations:f.tvRecommendations||'', benefitFrom:f.tvBenefitFrom||'', recsSummary:f.tvRecsSummary||'',
+    needs,
+    supervisor: f.tvSupervisor || USER.username, createdBy: USER.username
+  };
+  if(f.tvEditId){
+    update(d=>{ const i=d.techVisits.findIndex(x=>x.id===f.tvEditId); if(i>-1) d.techVisits[i]=rec; });
+    logAction('تعديل زيارة فنية: '+rec.teacherName);
+    toast('تم التعديل');
+  } else {
+    update(d=>{ d.techVisits=[rec, ...(d.techVisits||[])]; });
+    logAction('إضافة زيارة فنية: '+rec.teacherName);
+    toast('تم حفظ الزيارة');
+  }
+  clearF(); rerenderSection();
+}
+function techVisitEdit(id){
+  const v = (DB.techVisits||[]).find(x=>x.id===id); if(!v) return;
+  const ff = { tvEditId:v.id, tvTeacherId:v.teacherId, tvDate:v.date, tvNumber:v.number, tvCategory:v.category, tvAttendMode:v.attendMode, tvNewToSubject:v.newToSubject,
+    tvNationality:v.nationality, tvQual:v.qualification, tvQualYear:v.qualYear, tvSpec:v.specialization, tvTeachField:v.teachingField, tvHireDate:v.hireDateSchool,
+    tvMethods:(v.methods||[]).slice(), tvMethodsOther:v.methodsOther,
+    tvGrade:v.grade, tvSection:v.section, tvPeriod:v.period, tvSubject:v.subject, tvLesson:v.lesson, tvTotal:v.total, tvPresent:v.present, tvAbsent:v.absent, tvPurpose:v.purpose,
+    tvImplementLevel:v.implementLevel, tvStrengths:v.strengths, tvSupport:v.support, tvRecommendations:v.recommendations, tvBenefitFrom:v.benefitFrom, tvRecsSummary:v.recsSummary,
+    tvSupervisor:v.supervisor };
+  TECH_VISIT_CATEGORIES.forEach(cat=> cat.items.forEach((_,i)=>{ ff['tv_'+cat.key+'_'+i] = (v.ratings&&v.ratings[cat.key]&&v.ratings[cat.key][i]) || ''; }));
+  (v.needs||[]).forEach((n,i)=>{ ff['tvNeed'+(i+1)]=n.need; ff['tvProg'+(i+1)]=n.program; });
+  FORM = ff; rerenderSection();
+}
+function techVisitDelete(id){ update(d=>{ d.techVisits=(d.techVisits||[]).filter(x=>x.id!==id); }); toast('تم الحذف'); rerenderSection(); }
+function techVisitPrint(id){
+  const v = (DB.techVisits||[]).find(x=>x.id===id); if(!v) return;
+  const meta = [['اسم المعلم رباعياً',v.teacherName],['الجنسية',v.nationality||'—'],['المؤهل وتاريخه',(v.qualification||'—')+' '+(v.qualYear||'')],
+    ['التخصص',v.specialization||'—'],['مجال التدريس',v.teachingField||'—'],['تاريخ المباشرة في المدرسة',fmtDate(v.hireDateSchool)],['تاريخ الزيارة',fmtDate(v.date)],['رقم الزيارة',v.number||'—']];
+  const methodsHtml = `<div class="formbox"><b>الأساليب التي اتبعها المشرف للتعرف على المستوى:</b><br>${esc((v.methods||[]).join('، ')||'—')}${v.methodsOther?' — '+esc(v.methodsOther):''}</div>`;
+  const basicRows = [['الصف/الفصل',(v.grade||'—')+' / '+(v.section||'—')],['الحصة',v.period||'—'],['المادة',v.subject||'—'],['عنوان الدرس',v.lesson||'—'],
+    ['عدد طلاب الفصل',v.total||'—'],['عدد الحضور',v.present||'—'],['عدد الغياب',v.absent||'—'],['نوع الزيارة',v.category||'—'],['نوع الحضور',v.attendMode||'—'],
+    ['هل المعلم جديد على المادة؟',v.newToSubject||'—'],['الغرض من الزيارة',v.purpose||'—']];
+  const basicHtml = '<h1 style="font-size:15px;margin-top:18px">البيانات الأساسية</h1><table><tbody>'+basicRows.map(r=>`<tr><td style="font-weight:700">${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')+'</tbody></table>';
+  const catsHtml = TECH_VISIT_CATEGORIES.map(cat=>{
+    const scores = cat.items.map((_,i)=> (v.ratings&&v.ratings[cat.key]&&v.ratings[cat.key][i])||0);
+    const avg = scores.filter(s=>s>0).length ? Math.round((scores.filter(s=>s>0).reduce((a,b)=>a+b,0)/scores.filter(s=>s>0).length)*10)/10 : 0;
+    return `<h1 style="font-size:14px;margin-top:16px">${esc(cat.label)} — الدرجة: ${avg}</h1><table><thead><tr><th>عنصر التقييم</th><th>التقدير</th></tr></thead><tbody>${cat.items.map((it,i)=>`<tr><td>${esc(it)}</td><td>${scores[i]||'—'}</td></tr>`).join('')}</tbody></table>`;
+  }).join('');
+  const recsHtml = `<h1 style="font-size:15px;margin-top:18px">التوصيات والدعم</h1><table><tbody>
+    <tr><td style="font-weight:700">مستوى تنفيذ التوصيات السابقة</td><td>${esc(v.implementLevel||'—')}</td></tr>
+    <tr><td style="font-weight:700">مواطن القوة والتميز</td><td>${esc(v.strengths||'—')}</td></tr>
+    <tr><td style="font-weight:700">الدعم والخبرات المقدمة من المشرف</td><td>${esc(v.support||'—')}</td></tr>
+    <tr><td style="font-weight:700">التوصيات</td><td>${esc(v.recommendations||'—')}</td></tr>
+    <tr><td style="font-weight:700">يستفاد من المعلم في</td><td>${esc(v.benefitFrom||'—')}</td></tr>
+    <tr><td style="font-weight:700">توصيات (ملخص)</td><td>${esc(v.recsSummary||'—')}</td></tr>
+  </tbody></table>`;
+  const needsHtml = (v.needs&&v.needs.length) ? '<h1 style="font-size:15px;margin-top:18px">الاحتياجات والبرامج المقترحة</h1><table><thead><tr><th>م</th><th>الاحتياجات</th><th>البرامج المقترحة</th></tr></thead><tbody>'+
+    v.needs.map((n,i)=>`<tr><td>${i+1}</td><td>${esc(n.need||'—')}</td><td>${esc(n.program||'—')}</td></tr>`).join('')+'</tbody></table>' : '';
+  const footer = `<div class="row-gap" style="margin-top:26px;justify-content:space-between;display:flex">
+    <div>المعلم: ${esc(v.teacherName)}</div><div>مدير المدرسة: ${esc(DB.settings.principal||'—')}</div><div>المشرف التربوي: ${esc(v.supervisor||'—')}</div>
+  </div>`;
+  printReport('بطاقة تشخيص قياس التحصيل — زيارة فنية', meta, null, null, {html: methodsHtml+basicHtml+catsHtml+recsHtml+needsHtml+footer});
 }
 
 function genericSectionHTML(cfgKey){
@@ -1330,6 +1511,15 @@ function staffEmployees(){
       ${fieldWrap('القسم', renderFieldControl({k:'eDept'}))}
       ${fieldWrap('الجوال', renderFieldControl({k:'ePhone',type:'tel',ph:'05xxxxxxxx'}))}
     </div>
+    <div style="margin-top:14px;font-size:12.5px;font-weight:700">بيانات إضافية (تُستخدم في نموذج الزيارة الفنية)</div>
+    <div class="form-grid" style="margin-top:8px">
+      ${fieldWrap('الجنسية', renderFieldControl({k:'eNationality'}))}
+      ${fieldWrap('المؤهل', renderFieldControl({k:'eQual',ph:'بكالوريوس تربية…'}))}
+      ${fieldWrap('سنة التخرج', renderFieldControl({k:'eQualYear'}))}
+      ${fieldWrap('التخصص', renderFieldControl({k:'eSpec'}))}
+      ${fieldWrap('مجال التدريس', renderFieldControl({k:'eTeachField'}))}
+      ${fieldWrap('تاريخ المباشرة في المدرسة', renderFieldControl({k:'eHireDate',type:'date'}))}
+    </div>
     <div style="margin-top:14px;font-size:12.5px;font-weight:700">عدد الحصص لكل يوم (لاحتساب الفاقد التعليمي)</div>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:8px;max-width:520px">${DAYS.map(d=>fieldWrap(DAY_AR[d], pinField(d))).join('')}</div>
     <div class="row-gap">${btn(f.editId?'حفظ التعديل':'حفظ','empSubmit()','primary')}${btn('مسح','clearF();rerenderSection();','ghost')}</div>`);
@@ -1349,11 +1539,12 @@ async function empSubmit(){
   const f = FORM;
   if(!f.eName){ toast('الاسم مطلوب','red'); return; }
   const periods={}; DAYS.forEach(d=> periods[d]= +(f['p_'+d]||0));
+  const extra = {nationality:f.eNationality||'', qualification:f.eQual||'', qualYear:f.eQualYear||'', specialization:f.eSpec||'', teachingField:f.eTeachField||'', hireDateSchool:f.eHireDate||''};
   if(f.editId){
-    update(d=>{ const e=d.employees.find(x=>x.id===f.editId); Object.assign(e,{name:f.eName,title:f.eTitle||'',dept:f.eDept||'',phone:f.ePhone||'',periods}); });
+    update(d=>{ const e=d.employees.find(x=>x.id===f.editId); Object.assign(e,{name:f.eName,title:f.eTitle||'',dept:f.eDept||'',phone:f.ePhone||'',periods,...extra}); });
     toast('تم التعديل');
   } else {
-    const emp = {id:uid(),name:f.eName,title:f.eTitle||'',dept:f.eDept||'',phone:f.ePhone||'',periods};
+    const emp = {id:uid(),name:f.eName,title:f.eTitle||'',dept:f.eDept||'',phone:f.ePhone||'',periods,...extra};
     const acct = await makeAccountForEmployee(emp, new Set(DB.users.map(u=>u.username)));
     update(d=>{ d.employees.unshift(emp); if(acct.ok) d.users.push(acct.user); });
     logAction('إضافة موظف');
@@ -1365,7 +1556,8 @@ async function empSubmit(){
 }
 function empEdit(id){
   const r = DB.employees.find(x=>x.id===id); if(!r) return;
-  const ff = { editId:r.id, eName:r.name, eTitle:r.title, eDept:r.dept, ePhone:r.phone };
+  const ff = { editId:r.id, eName:r.name, eTitle:r.title, eDept:r.dept, ePhone:r.phone,
+    eNationality:r.nationality||'', eQual:r.qualification||'', eQualYear:r.qualYear||'', eSpec:r.specialization||'', eTeachField:r.teachingField||'', eHireDate:r.hireDateSchool||'' };
   DAYS.forEach(d=> ff['p_'+d]=r.periods?r.periods[d]:0);
   FORM = ff; rerenderSection();
 }
@@ -1481,9 +1673,10 @@ function empProfileStats(id, emp){
   const tasks = DB.tasks.filter(t=>t.assignee===emp.name);
   const achievements = (DB.achievements||[]).filter(a=>a.name===emp.name && a.date>=from && a.date<=to);
   const visits = (DB.classroomVisits||[]).filter(v=>v.teacher===emp.name && v.date>=from && v.date<=to);
+  const techVisits = (DB.techVisits||[]).filter(v=>v.teacherId===id && v.date>=from && v.date<=to);
   const linkedUser = DB.users.find(u=>u.employeeId===id);
   const activity = linkedUser ? DB.log.filter(l=> l.user===linkedUser.username && l.time && l.time.slice(0,10)>=from && l.time.slice(0,10)<=to) : [];
-  return {from, to, abs, fullDays, late, perm, missingTotal, coveredTotal, netLost, coveredForOthers, tasks, achievements, visits, linkedUser, activity};
+  return {from, to, abs, fullDays, late, perm, missingTotal, coveredTotal, netLost, coveredForOthers, tasks, achievements, visits, techVisits, linkedUser, activity};
 }
 function empProfileHTML(id){
   const emp = DB.employees.find(e=>e.id===id);
@@ -1517,6 +1710,10 @@ function empProfileHTML(id){
   html += card('الزيارات الصفية ('+s.visits.length+')', tableHTML(['المادة','الصف','التقدير','التاريخ'], s.visits, (r,ci)=>{
     switch(ci){ case 0:return esc(r.subject); case 1:return esc(r.grade||'—'); case 2:return pill(r.rating, r.rating==='ممتاز'?C.teal:r.rating==='يحتاج دعماً'?C.red:C.amber); case 3:return fmtDate(r.date); default:return ''; }
   }));
+  html += card('الزيارات الفنية ('+s.techVisits.length+')', tableHTML(['المادة','رقم الزيارة','النوع','التاريخ','إجراء'], s.techVisits, (r,ci)=>{
+    switch(ci){ case 0:return esc(r.subject||'—'); case 1:return esc(r.number||'—'); case 2:return esc(r.category||'—'); case 3:return fmtDate(r.date);
+      case 4:return `<button class="btn btn-gold btn-sm" onclick="techVisitPrint('${r.id}')">طباعة</button>`; default:return ''; }
+  }));
   const activityBody = s.linkedUser
     ? tableHTML(['الحركة','الوقت'], s.activity, (r,ci)=> ci===0? esc(r.action) : esc(new Date(r.time).toLocaleString('ar-SA-u-ca-gregory')))
     : `<div style="color:${C.muted};padding:14px;text-align:center">لا يوجد حساب مستخدم مرتبط بهذا الموظف لعرض حركاته في النظام</div>`;
@@ -1536,6 +1733,7 @@ function empProfilePrint(id){
     + section('المهام', ['المهمة','الاستحقاق','الإنجاز','الحالة'], s.tasks.map(t=>[t.title, fmtDate(t.due), (t.progress||0)+'%', t.status]))
     + section('الإنجازات', ['الإنجاز','التفاصيل','التاريخ'], s.achievements.map(a=>[a.title, a.desc||'—', fmtDate(a.date)]))
     + section('الزيارات الصفية', ['المادة','الصف','التقدير','التاريخ'], s.visits.map(v=>[v.subject, v.grade||'—', v.rating, fmtDate(v.date)]))
+    + section('الزيارات الفنية', ['المادة','رقم الزيارة','النوع','التاريخ'], s.techVisits.map(v=>[v.subject||'—', v.number||'—', v.category||'—', fmtDate(v.date)]))
     + section('سجل الحركات والإجراءات في النظام', ['الحركة','الوقت'], s.activity.map(a=>[a.action, new Date(a.time).toLocaleString('ar-SA-u-ca-gregory')]));
   printReport('التقرير الشامل — '+emp.name, meta, null, null, {html: extra});
 }
