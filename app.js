@@ -309,6 +309,7 @@ function renderRoot(){
 function renderForcePw(){
   return `<div class="login-wrap"><div class="login-card">
     <div class="login-head">
+      <img src="icon-512.png" alt="" class="login-logo">
       <div class="m">${esc(SCHOOL.ministry)} · ${esc(SCHOOL.edu)}</div>
       <div class="b">${esc(SCHOOL.name)}</div>
       <div class="rule"></div>
@@ -483,6 +484,7 @@ function renderLogin(){
   const anyDefault = DB.users.some(u=>u.isDefaultPw);
   return `<div class="login-wrap"><div class="login-card">
     <div class="login-head">
+      <img src="icon-512.png" alt="" class="login-logo">
       <div class="m">${esc(SCHOOL.ministry)} · ${esc(SCHOOL.edu)}</div>
       <div class="b">${esc(SCHOOL.name)}</div>
       <div class="rule"></div>
