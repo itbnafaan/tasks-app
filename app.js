@@ -189,7 +189,7 @@ let SECTION = 'dashboard';
 let SIDEBAR_OPEN = false;
 let FORM = {}, FILTERS = {}, SUBTAB = {};
 let TOASTS = [];
-let LOGIN_U = '', LOGIN_P = '', LOGIN_YEAR = '1447', LOGIN_TERM = 'الأول';
+let LOGIN_U = '', LOGIN_P = '', LOGIN_YEAR = '1448', LOGIN_TERM = 'الأول';
 
 // ===== LOGIN SESSION PERSISTENCE (8 ساعات = فترة الدوام) =====
 const LOGIN_SESSION_KEY = 'obf_school_login_session_v1';
@@ -205,7 +205,7 @@ function restoreLoginSession(){
   const u = DB.users.find(x=> x.id===saved.userId && x.active);
   if(!u){ clearLoginSession(); return false; }
   USER = u; SESSION = { year: saved.year||LOGIN_YEAR, term: saved.term||LOGIN_TERM };
-  VIEW = 'app'; SECTION = firstSection(u);
+  VIEW = u.isDefaultPw ? 'forcePw' : 'app'; SECTION = firstSection(u);
   return true;
 }
 
@@ -259,11 +259,23 @@ async function doLogin(){
   const h = await sha256(u.salt+LOGIN_P);
   if(h!==u.hash){ toast('كلمة المرور غير صحيحة','red'); return; }
   USER = u; SESSION = { year:LOGIN_YEAR+'هـ', term:LOGIN_TERM };
-  VIEW='app'; SECTION=firstSection(u); LOGIN_P='';
+  VIEW = u.isDefaultPw ? 'forcePw' : 'app'; SECTION=firstSection(u); LOGIN_P='';
   saveLoginSession(u);
   logAction('تسجيل الدخول');
   renderRoot();
-  toast('مرحباً بك، تم تسجيل الدخول');
+  if(!u.isDefaultPw) toast('مرحباً بك، تم تسجيل الدخول');
+}
+async function forcePwSubmit(){
+  const p1 = FORM.fpNew||'', p2 = FORM.fpConfirm||'';
+  if(p1.length<6){ toast('كلمة المرور الجديدة قصيرة (6 أحرف على الأقل)','red'); return; }
+  if(p1!==p2){ toast('كلمتا المرور غير متطابقتين','red'); return; }
+  const salt = randSalt(); const hash = await sha256(salt+p1);
+  update(d=>{ const t=d.users.find(x=>x.id===USER.id); t.salt=salt; t.hash=hash; t.isDefaultPw=false; });
+  USER = DB.users.find(x=>x.id===USER.id);
+  FORM = {}; VIEW='app';
+  logAction('تغيير كلمة المرور المؤقتة');
+  toast('تم تعيين كلمة المرور، مرحباً بك');
+  renderRoot();
 }
 function logout(){
   logAction('تسجيل الخروج');
@@ -289,8 +301,26 @@ async function changePassword(){
 function renderRoot(){
   const root = document.getElementById('root');
   if(!READY){ root.innerHTML = '<div class="loading">…جارٍ التحميل</div>'; return; }
-  root.innerHTML = VIEW==='login' ? renderLogin() : renderApp();
+  root.innerHTML = VIEW==='login' ? renderLogin() : VIEW==='forcePw' ? renderForcePw() : renderApp();
   renderToasts();
+}
+function renderForcePw(){
+  return `<div class="login-wrap"><div class="login-card">
+    <div class="login-head">
+      <div class="m">${esc(SCHOOL.ministry)} · ${esc(SCHOOL.edu)}</div>
+      <div class="b">${esc(SCHOOL.name)}</div>
+      <div class="rule"></div>
+    </div>
+    <div class="login-body">
+      <h2>يجب تعيين كلمة مرور جديدة</h2>
+      <p style="font-size:13px;color:${C.muted};margin:0 0 14px">هذا حساب بكلمة مرور مؤقتة. لمتابعة استخدام النظام، عيّن كلمة مرور جديدة خاصة بك.</p>
+      ${fieldWrap('كلمة المرور الجديدة', `<input type="password" class="ctl" value="${esc(FORM.fpNew||'')}" oninput="setF('fpNew',this.value);">`)}
+      <div style="margin-top:14px">${fieldWrap('تأكيد كلمة المرور', `<input type="password" class="ctl" value="${esc(FORM.fpConfirm||'')}" oninput="setF('fpConfirm',this.value);" onkeydown="if(event.key==='Enter')forcePwSubmit();">`)}</div>
+      <button class="login-btn" style="margin-top:16px" onclick="forcePwSubmit()">حفظ ومتابعة</button>
+      <button class="btn btn-ghost" style="margin-top:10px;width:100%" onclick="logout()">تسجيل الخروج</button>
+    </div>
+    <div class="login-foot">${esc(FOOTER)}</div>
+  </div></div>`;
 }
 function rerenderSection(){
   const root = document.getElementById('section-body');
@@ -460,8 +490,8 @@ function renderLogin(){
       ${fieldWrap('اسم المستخدم', `<input class="ctl" id="loginU" value="${esc(LOGIN_U)}" oninput="LOGIN_U=this.value;" placeholder="admin">`)}
       <div style="margin-top:14px">${fieldWrap('كلمة المرور', `<input type="password" class="ctl" id="loginP" value="${esc(LOGIN_P)}" oninput="LOGIN_P=this.value;" onkeydown="if(event.key==='Enter')doLogin();" placeholder="••••••••">`)}</div>
       <div class="login-row">
-        ${fieldWrap('العام الدراسي', `<select class="ctl" onchange="LOGIN_YEAR=this.value;">${['1447','1448','1449'].map(y=>`<option value="${y}" ${LOGIN_YEAR===y?'selected':''}>${y}هـ</option>`).join('')}</select>`)}
-        ${fieldWrap('الفصل الدراسي', `<select class="ctl" onchange="LOGIN_TERM=this.value;">${['الأول','الثاني','الثالث'].map(t=>`<option value="${t}" ${LOGIN_TERM===t?'selected':''}>${t}</option>`).join('')}</select>`)}
+        ${fieldWrap('العام الدراسي', `<select class="ctl" onchange="LOGIN_YEAR=this.value;">${['1448','1449','1450','1451'].map(y=>`<option value="${y}" ${LOGIN_YEAR===y?'selected':''}>${y}هـ</option>`).join('')}</select>`)}
+        ${fieldWrap('الفصل الدراسي', `<select class="ctl" onchange="LOGIN_TERM=this.value;">${['الأول','الثاني'].map(t=>`<option value="${t}" ${LOGIN_TERM===t?'selected':''}>${t}</option>`).join('')}</select>`)}
       </div>
       <button class="login-btn" onclick="doLogin()">دخول</button>
       ${anyDefault?`<div class="login-hint"><b>حسابات افتراضية (تختفي بعد تغيير كلمتها):</b><br>المسؤول — <code>admin / admin1234</code><br>مدير المدرسة — <code>manager / manager1234</code></div>`:''}
@@ -1314,7 +1344,7 @@ function staffEmployees(){
   }));
   return html;
 }
-function empSubmit(){
+async function empSubmit(){
   const f = FORM;
   if(!f.eName){ toast('الاسم مطلوب','red'); return; }
   const periods={}; DAYS.forEach(d=> periods[d]= +(f['p_'+d]||0));
@@ -1322,8 +1352,13 @@ function empSubmit(){
     update(d=>{ const e=d.employees.find(x=>x.id===f.editId); Object.assign(e,{name:f.eName,title:f.eTitle||'',dept:f.eDept||'',phone:f.ePhone||'',periods}); });
     toast('تم التعديل');
   } else {
-    update(d=>{ d.employees.unshift({id:uid(),name:f.eName,title:f.eTitle||'',dept:f.eDept||'',phone:f.ePhone||'',periods}); });
-    logAction('إضافة موظف'); toast('تمت الإضافة');
+    const emp = {id:uid(),name:f.eName,title:f.eTitle||'',dept:f.eDept||'',phone:f.ePhone||'',periods};
+    const acct = await makeAccountForEmployee(emp, new Set(DB.users.map(u=>u.username)));
+    update(d=>{ d.employees.unshift(emp); if(acct.ok) d.users.push(acct.user); });
+    logAction('إضافة موظف');
+    if(acct.ok) toast('تمت الإضافة وإنشاء حساب دخول برقم الجوال');
+    else if(acct.reason==='no-phone') toast('تمت الإضافة (لم يُنشأ حساب دخول — الجوال فارغ)','amber');
+    else toast('تمت الإضافة (لم يُنشأ حساب دخول — الرقم مستخدم مسبقاً لحساب آخر)','amber');
   }
   clearF(); rerenderSection();
 }
@@ -1334,16 +1369,26 @@ function empEdit(id){
   FORM = ff; rerenderSection();
 }
 function empDelete(id){ update(d=>{ d.employees=d.employees.filter(x=>x.id!==id); }); toast('تم الحذف'); rerenderSection(); }
-function importEmployees(file){
+async function makeAccountForEmployee(emp, takenUsernames){
+  const phone = (emp.phone||'').trim();
+  if(!phone) return {ok:false, reason:'no-phone'};
+  if(takenUsernames.has(phone)) return {ok:false, reason:'dup'};
+  const salt = randSalt(); const hash = await sha256(salt+'123456');
+  return { ok:true, user:{ id:uid(), username:phone, role:'staff', salt, hash, employeeId:emp.id, active:true, perms:rolePerms('staff'), isDefaultPw:true, canDashboard:false } };
+}
+async function importEmployees(file){
   if(!file) return; const rd=new FileReader();
-  rd.onload = e=>{
+  rd.onload = async e=>{
     let txt = e.target.result; if(txt.charCodeAt(0)===0xFEFF) txt=txt.slice(1);
     const lines = txt.split(/\r?\n/).filter(l=>l.trim()); let added=0;
     const start = /اسم|name/i.test(lines[0])?1:0; const rows=[];
     for(let i=start;i<lines.length;i++){ const p=lines[i].split(',').map(x=>x.replace(/^"|"$/g,'').trim()); if(!p[0]) continue;
       rows.push({id:uid(),name:p[0],title:p[2]||'معلم',dept:'',phone:p[1]||'',periods:{}}); added++; }
-    update(d=>{ d.employees=[...rows,...d.employees]; });
-    logAction('استيراد '+added+' موظف'); toast('تم استيراد '+added+' موظف'); rerenderSection();
+    const takenUsernames = new Set(DB.users.map(u=>u.username));
+    const newUsers = [];
+    for(const emp of rows){ const acct = await makeAccountForEmployee(emp, takenUsernames); if(acct.ok){ newUsers.push(acct.user); takenUsernames.add(acct.user.username); } }
+    update(d=>{ d.employees=[...rows,...d.employees]; d.users=[...d.users,...newUsers]; });
+    logAction('استيراد '+added+' موظف'); toast('تم استيراد '+added+' موظف، وإنشاء '+newUsers.length+' حساب دخول برقم الجوال'); rerenderSection();
   };
   rd.readAsText(file,'utf-8');
 }
@@ -1884,7 +1929,7 @@ function secUsers(){
       case 3:return r.meetingRoomManager?pill('نعم',C.teal):pill('لا',C.muted);
       case 4:return pill(r.active?'مفعّل':'معطّل', r.active?C.teal:C.red);
       case 5:{
-        let out = `<div class="td-actions">${btn(r.active?'تعطيل':'تفعيل',`userToggleActive('${r.id}')`,'ghost')}${btn('لوحة',`userToggleDash('${r.id}')`,'ghost')}${btn('إدارة الاجتماعات',`userToggleMeetingMgr('${r.id}')`,'ghost')}`;
+        let out = `<div class="td-actions">${btn(r.active?'تعطيل':'تفعيل',`userToggleActive('${r.id}')`,'ghost')}${btn('لوحة',`userToggleDash('${r.id}')`,'ghost')}${btn('إدارة الاجتماعات',`userToggleMeetingMgr('${r.id}')`,'ghost')}${btn('إعادة تعيين كلمة المرور',`userResetPassword('${r.id}')`,'gold')}`;
         if(r.username!=='admin') out += btn('حذف',`userDelete('${r.id}')`,'red');
         return out+'</div>';
       }
@@ -1912,6 +1957,15 @@ function userToggleMeetingMgr(id){ update(d=>{ const u=d.users.find(x=>x.id===id
 function userDelete(id){
   if(id===USER.id){ toast('لا يمكن حذف حسابك','red'); return; }
   update(d=>{ d.users=d.users.filter(u=>u.id!==id); }); toast('تم الحذف'); rerenderSection();
+}
+async function userResetPassword(id){
+  const u = DB.users.find(x=>x.id===id); if(!u) return;
+  if(!confirm('سيتم إعادة كلمة مرور «'+u.username+'» إلى الرقم الافتراضي 123456، وسيُطلب منه تعيين كلمة جديدة عند الدخول. متابعة؟')) return;
+  const salt = randSalt(); const hash = await sha256(salt+'123456');
+  update(d=>{ const t=d.users.find(x=>x.id===id); t.salt=salt; t.hash=hash; t.isDefaultPw=true; });
+  logAction('إعادة تعيين كلمة مرور: '+u.username);
+  toast('تم إعادة تعيين كلمة المرور إلى 123456');
+  rerenderSection();
 }
 
 // ===== LOG =====
