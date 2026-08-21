@@ -38,6 +38,7 @@ const NAV = [
   { id:'deputySchool', label:'وكيل الشؤون المدرسية', icon:'🏫' },
   { id:'committees', label:'اللجان', icon:'🧑‍🤝‍🧑' },
   { id:'commsHub', label:'الاتصال المؤسسي', icon:'📣' },
+  { id:'reports', label:'التقارير', icon:'📈' },
   { id:'users', label:'المستخدمون', icon:'👥' },
   { id:'log', label:'سجل الحركات', icon:'📜' },
   { id:'settings', label:'الإعدادات', icon:'⚙️' }
@@ -534,7 +535,7 @@ function renderSectionBody(){
     dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, studentFiles:secStudentFiles, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
-    committees:secCommittees, commsHub:secCommsHub,
+    committees:secCommittees, commsHub:secCommsHub, reports:secReports,
     users:secUsers, log:secLog, settings:secSettings
   };
   const fn = map[SECTION];
@@ -1452,8 +1453,21 @@ function taSubmit(){
   logAction('تسجيل حالة معلم: '+f.taType); clearF(); toast('تم التسجيل'); rerenderSection();
 }
 function taDelete(id){ update(d=>{ d.teacherAbsences=d.teacherAbsences.filter(x=>x.id!==id); }); toast('تم الحذف'); rerenderSection(); }
-function openEmpProfile(id){ SECTION='teacherAbsence'; SIDEBAR_OPEN=false; FORM={empProfileId:id}; renderRoot(); }
+function openEmpProfile(id, keepSection){ if(!keepSection) SECTION='teacherAbsence'; SIDEBAR_OPEN=false; FORM={empProfileId:id}; renderRoot(); }
 function closeEmpProfile(){ FORM={}; renderRoot(); }
+function secReports(){
+  if(FORM.empProfileId) return `<div class="row-gap" style="margin-bottom:14px">${btn('رجوع للتقارير','closeEmpProfile()','ghost')}</div>` + empProfileHTML(FORM.empProfileId);
+  const tab = SUBTAB.reports||'student';
+  const tabs=[['student','تقرير الطالب'],['teacher','تقرير المعلم']];
+  if(tab==='teacher'){
+    const rowsHtml = DB.employees.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td>${esc(r.title||'—')}</td><td>${esc(r.dept||'—')}</td><td><button class="btn btn-gold btn-sm" onclick="openEmpProfile('${r.id}',true)">فتح التقرير الشامل</button></td></tr>`).join('');
+    const body = DB.employees.length
+      ? `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>الاسم</th><th>المسمى</th><th>القسم</th><th>التقرير</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`
+      : `<div style="color:${C.muted};padding:20px;text-align:center">لا يوجد موظفون مسجّلون</div>`;
+    return subTabsHTML('reports',tabs) + card('تقرير المعلم — اختر معلماً أو موظفاً', body);
+  }
+  return subTabsHTML('reports',tabs) + secStudentFiles();
+}
 function empProfileStats(id, emp){
   const from = FILTERS.pFrom || DB.settings.termStart || todayStr();
   const to = FILTERS.pTo || todayStr();
