@@ -31,6 +31,7 @@ button{cursor:pointer}
 }
 .login-card{width:100%;max-width:430px;background:var(--card);border-radius:18px;box-shadow:0 24px 60px rgba(15,40,73,.14);overflow:hidden;border:1px solid var(--border)}
 .login-head{background:var(--navy);color:#fff;padding:26px 28px;text-align:center}
+.login-logo{width:76px;height:76px;border-radius:18px;display:block;margin:0 auto 14px}
 .login-head .m{font-size:12px;opacity:.85;letter-spacing:.5px}
 .login-head .b{font-size:22px;font-weight:800;margin-top:6px}
 .login-head .rule{width:44px;height:3px;background:var(--gold);border-radius:2px;margin:12px auto 0}
