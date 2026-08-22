@@ -16,6 +16,12 @@ const C = { navy:'#0F2849', gold:'#C9A227', teal:'#1D9E75', red:'#C0392B', amber
 const SCHOOL = { name:'مدرسة عثمان بن عفان الابتدائية', edu:'إدارة تعليم جدة', ministry:'وزارة التعليم', principal:'الأستاذ طلال حضيض السلمي' };
 const FOOTER = 'تصميم وإعداد عبدالله العتيبي';
 function footerHTML(){ return 'تصميم وإعداد <a href="mailto:abdullah@alotaibi.sa" style="color:inherit">عبدالله العتيبي</a>'; }
+function displayName(u){
+  if(!u) return '';
+  if(u.username==='admin') return 'المسؤول';
+  const emp = DB.employees.find(e=>e.id===u.employeeId);
+  return emp ? emp.name : u.username;
+}
 const STORAGE_KEY = 'obf_school_system_v1';
 const DAYS = ['sun','mon','tue','wed','thu'];
 const DAY_AR = { sun:'الأحد', mon:'الاثنين', tue:'الثلاثاء', wed:'الأربعاء', thu:'الخميس' };
@@ -39,6 +45,7 @@ const NAV = [
   { id:'deputySchool', label:'وكيل الشؤون المدرسية', icon:'🏫' },
   { id:'techVisits', label:'الزيارة الفنية', icon:'🔬' },
   { id:'committees', label:'اللجان', icon:'🧑‍🤝‍🧑' },
+  { id:'activityLead', label:'رائد النشاط', icon:'🎯' },
   { id:'commsHub', label:'الاتصال المؤسسي', icon:'📣' },
   { id:'reports', label:'التقارير', icon:'📈' },
   { id:'users', label:'المستخدمون', icon:'👥' },
@@ -56,7 +63,11 @@ const ROLES = {
   counselor: { label:'الموجه الطلابي', sections:['counselor','meetingRoom','messages','studentFiles'] },
   beneficiary: { label:'موظف خدمة المستفيد', sections:['beneficiary','meetingRoom','messages'] },
   attendance: { label:'راصد الحضور', sections:['attendance','meetingRoom','messages'] },
-  staff: { label:'منسوب', sections:['staff','meetingRoom','messages'] }
+  staff: { label:'موظف', sections:['staff','meetingRoom','messages'] },
+  teacher: { label:'معلم', sections:['attendance','staff','meetingRoom','messages'] },
+  activityLeader: { label:'رائد النشاط', sections:['activityLead','meetingRoom','messages'] },
+  madrasatiNoorAdmin: { label:'مسؤول منصة مدرستي ونظام نور', sections:['meetingRoom','messages'] },
+  noorAttendanceAdmin: { label:'مسؤول الغياب في نور', sections:['attendance','meetingRoom','messages'] }
 };
 
 const DEDUCT = { 1:1, 2:2, 3:3, 4:10, 5:15 };
@@ -522,8 +533,8 @@ function renderApp(){
         <div class="topbar-title"><button class="hamburger" onclick="toggleSidebar()">☰</button>${esc(title)}</div>
         <div class="topbar-user">
           ${cloudStatusHTML()}
-          <div class="info"><div class="name">${esc(USER.username==='admin'?'المسؤول':USER.username)}</div><div class="role">${esc((ROLES[USER.role]||{}).label||USER.role)} · ${esc(SESSION.year)} · الفصل ${esc(SESSION.term)}</div></div>
-          <div class="avatar">${esc((USER.username[0]||'م').toUpperCase())}</div>
+          <div class="info"><div class="name">${esc(displayName(USER))}</div><div class="role">${esc((ROLES[USER.role]||{}).label||USER.role)} · ${esc(SESSION.year)} · الفصل ${esc(SESSION.term)}</div></div>
+          <div class="avatar">${esc((displayName(USER)[0]||'م').toUpperCase())}</div>
           <button class="logout-btn" onclick="logout()">خروج</button>
         </div>
       </header>
@@ -2140,7 +2151,7 @@ function secUsers(){
     </div>`:''}
     <div class="row-gap">${btn('إنشاء الحساب','userCreate()','primary')}</div>`);
   html += card('الحسابات ('+DB.users.length+')', tableHTML(['المستخدم','الدور','لوحة المعلومات','إدارة الاجتماعات','الحالة','إجراء'], DB.users, (r,ci)=>{
-    switch(ci){ case 0:return esc(r.username); case 1:return esc(ROLES[r.role]?ROLES[r.role].label:r.role); case 2:return r.canDashboard?pill('نعم',C.teal):pill('لا',C.muted);
+    switch(ci){ case 0:{ const dn=displayName(r); return dn!==r.username ? `${esc(dn)} <span style="color:${C.muted}">(${esc(r.username)})</span>` : esc(r.username); } case 1:return esc(ROLES[r.role]?ROLES[r.role].label:r.role); case 2:return r.canDashboard?pill('نعم',C.teal):pill('لا',C.muted);
       case 3:return r.meetingRoomManager?pill('نعم',C.teal):pill('لا',C.muted);
       case 4:return pill(r.active?'مفعّل':'معطّل', r.active?C.teal:C.red);
       case 5:{
