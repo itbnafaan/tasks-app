@@ -119,7 +119,7 @@ function defaultStore(){
     attendance:{}, periodIncidents:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
-    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[], commsActivities:[], techVisits:[],
+    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[], commsActivities:[], techVisits:[], activities:[],
     log:[]
   };
 }
@@ -550,7 +550,7 @@ function renderSectionBody(){
     dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, studentFiles:secStudentFiles, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
-    committees:secCommittees, commsHub:secCommsHub, reports:secReports, techVisits:secTechVisits,
+    committees:secCommittees, commsHub:secCommsHub, reports:secReports, techVisits:secTechVisits, activityLead:secActivityLead,
     users:secUsers, log:secLog, settings:secSettings
   };
   const fn = map[SECTION];
@@ -978,6 +978,100 @@ function techVisitPrint(id){
     <div>المعلم: ${esc(v.teacherName)}</div><div>مدير المدرسة: ${esc(DB.settings.principal||'—')}</div><div>المشرف التربوي: ${esc(v.supervisor||'—')}</div>
   </div>`;
   printReport('بطاقة تشخيص قياس التحصيل — زيارة فنية', meta, null, null, {html: methodsHtml+basicHtml+catsHtml+recsHtml+needsHtml+footer});
+}
+
+// ===== رائد النشاط =====
+function secActivityLead(){
+  const editing = !!FORM.actEditId;
+  let html = card(editing?'تعديل نشاط':'إضافة نشاط', `<div class="form-grid">
+      ${fieldWrap('اسم النشاط', renderFieldControl({k:'actTitle'}))}
+      ${fieldWrap('نوع النشاط', renderFieldControl({k:'actType'}))}
+      ${fieldWrap('التاريخ', renderFieldControl({k:'actDate',type:'date'}))}
+      ${fieldWrap('الفئة المستفيدة', renderFieldControl({k:'actAudience',type:'select',options:['الجميع','الطلاب','منسوبو المدرسة']}))}
+    </div>
+    ${fieldWrap('المحتوى', renderFieldControl({k:'actContent',type:'textarea'}))}
+    <label style="font-size:13px;font-weight:600;display:block;margin-top:10px">صور النشاط (حتى 6 صور، كل صورة ≤ 400KB): <input type="file" accept="image/*" multiple onchange="activityImagesSelect(this.files)" style="font-size:12px"></label>
+    ${(FORM.actImages&&FORM.actImages.length) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${FORM.actImages.map((img,i)=>`<div style="position:relative"><img src="${img}" style="height:80px;border-radius:8px;border:1px solid ${C.border}"><button type="button" onclick="activityImageRemove(${i})" style="position:absolute;top:-6px;left:-6px;background:${C.red};color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer">×</button></div>`).join('')}</div>` : ''}
+    <div class="row-gap" style="margin-top:14px">${btn(editing?'حفظ التعديل':'حفظ',"activitySubmit()",'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`);
+
+  const list = (DB.activities||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const printBar = `<div class="form-grid" style="margin-bottom:10px">
+      ${fieldWrap('من تاريخ', `<input type="date" class="ctl" value="${esc(FILTERS.actFrom||DB.settings.termStart||todayStr())}" onchange="setFilter('actFrom',this.value);rerenderSection();">`)}
+      ${fieldWrap('إلى تاريخ', `<input type="date" class="ctl" value="${esc(FILTERS.actTo||todayStr())}" onchange="setFilter('actTo',this.value);rerenderSection();">`)}
+    </div>
+    <div class="row-gap">${btn('طباعة تقرير شامل للأنشطة',"activitiesPrintAll()",'gold')}</div>`;
+
+  if(!list.length){ html += card('الأنشطة المسجلة', printBar + `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد أنشطة مسجلة</div>`); return html; }
+
+  const itemsHtml = list.map(a=>`
+    <div class="formbox" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">${pill(a.type||'—',C.blue)}<b>${esc(a.title)}</b></div>
+          <div style="color:${C.muted};font-size:12px;margin-top:4px">${fmtDate(a.date)} · الفئة المستفيدة: ${esc(a.audience||'—')}</div>
+        </div>
+        <div class="td-actions">${btn('طباعة',`activityPrint('${a.id}')`,'gold')}${btn('تعديل',`activityEdit('${a.id}')`,'ghost')}${btn('حذف',`activityDelete('${a.id}')`,'red')}</div>
+      </div>
+      ${a.content?`<div style="margin-top:8px;white-space:pre-wrap">${esc(a.content)}</div>`:''}
+      ${(a.images&&a.images.length)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${a.images.map(img=>`<img src="${img}" style="height:90px;border-radius:8px;border:1px solid ${C.border};cursor:zoom-in" onclick="window.open('${img}','_blank')">`).join('')}</div>`:''}
+    </div>`).join('');
+  html += card('الأنشطة المسجلة ('+list.length+')', printBar + itemsHtml);
+  return html;
+}
+function activityImagesSelect(files){
+  if(!files||!files.length) return;
+  FORM.actImages = FORM.actImages||[];
+  const remaining = 6 - FORM.actImages.length;
+  const toRead = Array.from(files).slice(0, Math.max(0,remaining));
+  if(files.length>remaining) toast('يمكن إضافة حتى 6 صور فقط','amber');
+  let pending = toRead.length;
+  if(!pending) return;
+  toRead.forEach(file=>{
+    if(file.size>400*1024){ toast('حجم إحدى الصور يتجاوز 400KB','red'); pending--; if(!pending) rerenderSection(); return; }
+    if(!file.type.startsWith('image/')){ toast('يُسمح بالصور فقط','red'); pending--; if(!pending) rerenderSection(); return; }
+    const rd = new FileReader();
+    rd.onload = e=>{ FORM.actImages.push(e.target.result); pending--; if(!pending) rerenderSection(); };
+    rd.readAsDataURL(file);
+  });
+}
+function activityImageRemove(i){ (FORM.actImages||[]).splice(i,1); rerenderSection(); }
+function activityEdit(id){
+  const a = (DB.activities||[]).find(x=>x.id===id); if(!a) return;
+  FORM = { actEditId:a.id, actTitle:a.title, actType:a.type, actDate:a.date, actAudience:a.audience, actContent:a.content, actImages:(a.images||[]).slice() };
+  rerenderSection();
+}
+function activitySubmit(){
+  if(!FORM.actTitle){ toast('يرجى تعبئة اسم النشاط','red'); return; }
+  const rec = { id: FORM.actEditId||uid(), title:FORM.actTitle, type:FORM.actType||'', date:FORM.actDate||todayStr(), audience:FORM.actAudience||'الجميع', content:FORM.actContent||'', images:(FORM.actImages||[]).slice(), createdBy:USER.username };
+  if(FORM.actEditId){
+    update(d=>{ const i=d.activities.findIndex(x=>x.id===FORM.actEditId); if(i>-1) d.activities[i]=rec; });
+    logAction('تعديل نشاط: '+rec.title);
+    toast('تم التعديل');
+  } else {
+    update(d=>{ if(!d.activities) d.activities=[]; d.activities.unshift(rec); });
+    logAction('إضافة نشاط: '+rec.title);
+    toast('تمت الإضافة');
+  }
+  clearF(); rerenderSection();
+}
+function activityDelete(id){ update(d=>{ d.activities=(d.activities||[]).filter(x=>x.id!==id); }); toast('تم الحذف'); rerenderSection(); }
+function activityPrint(id){
+  const a = (DB.activities||[]).find(x=>x.id===id); if(!a) return;
+  const meta = [['نوع النشاط',a.type||'—'],['التاريخ',fmtDate(a.date)],['الفئة المستفيدة',a.audience||'—']];
+  const extra = `${a.content?`<div class="formbox">${esc(a.content)}</div>`:''}
+    ${(a.images&&a.images.length)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${a.images.map(img=>`<img src="${img}" style="max-width:260px;border-radius:6px">`).join('')}</div>`:''}`;
+  printReport('تقرير نشاط: '+a.title, meta, null, null, {html: extra});
+}
+function activitiesPrintAll(){
+  const from = FILTERS.actFrom||DB.settings.termStart||todayStr(); const to = FILTERS.actTo||todayStr();
+  const list = (DB.activities||[]).filter(a=>a.date>=from && a.date<=to).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const meta = [['الفترة', fmtDate(from)+' — '+fmtDate(to)],['عدد الأنشطة', list.length]];
+  const extra = list.map(a=>`<div class="formbox" style="margin-top:10px">
+      <div style="font-weight:700">${esc(a.title)} <span style="color:#64748b;font-weight:400;font-size:12px">(${esc(a.type||'—')} — ${fmtDate(a.date)} — ${esc(a.audience||'—')})</span></div>
+      ${a.content?`<div style="margin-top:6px">${esc(a.content)}</div>`:''}
+      ${(a.images&&a.images.length)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${a.images.map(img=>`<img src="${img}" style="max-width:220px;border-radius:6px">`).join('')}</div>`:''}
+    </div>`).join('') || '<p style="color:#64748b;font-size:13px">لا توجد أنشطة ضمن هذه الفترة</p>';
+  printReport('تقرير شامل للأنشطة', meta, null, null, {html: extra});
 }
 
 function genericSectionHTML(cfgKey){
