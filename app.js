@@ -46,6 +46,7 @@ const NAV = [
   { id:'techVisits', label:'الزيارة الفنية', icon:'🔬' },
   { id:'committees', label:'اللجان', icon:'🧑‍🤝‍🧑' },
   { id:'activityLead', label:'رائد النشاط', icon:'🎯' },
+  { id:'healthAdvisor', label:'الموجه الصحي', icon:'⚕️' },
   { id:'commsHub', label:'الاتصال المؤسسي', icon:'📣' },
   { id:'reports', label:'التقارير', icon:'📈' },
   { id:'users', label:'المستخدمون', icon:'👥' },
@@ -66,6 +67,7 @@ const ROLES = {
   staff: { label:'موظف', sections:['staff','meetingRoom','messages'] },
   teacher: { label:'معلم', sections:['attendance','staff','meetingRoom','messages'] },
   activityLeader: { label:'رائد النشاط', sections:['activityLead','meetingRoom','messages'] },
+  healthAdvisor: { label:'الموجه الصحي', sections:['healthAdvisor','meetingRoom','messages'] },
   madrasatiNoorAdmin: { label:'مسؤول منصة مدرستي ونظام نور', sections:['meetingRoom','messages'] },
   noorAttendanceAdmin: { label:'مسؤول الغياب في نور', sections:['attendance','meetingRoom','messages'] }
 };
@@ -119,7 +121,7 @@ function defaultStore(){
     attendance:{}, periodIncidents:{}, tasks:[], achievements:[],
     teacherAbsences:[], counselCases:[], behaviorNotes:[], behaviorRecords:[], meritRecords:[],
     classroomVisits:[], studentFollowups:[], facilities:[],
-    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[], commsActivities:[], techVisits:[], activities:[],
+    meetings:[], circulars:[], privateMessages:[], studentDocuments:[], committees:[], commsActivities:[], techVisits:[], activities:[], healthActions:[],
     log:[]
   };
 }
@@ -550,7 +552,7 @@ function renderSectionBody(){
     dashboard:secDashboard, meetingRoom:secMeetingRoom, messages:secMessages, studentFiles:secStudentFiles, beneficiary:secBeneficiary, attendance:secAttendance, students:secStudents,
     staff:secStaff, teacherAbsence:secTeacherAbsence, counselor:secCounselor, behavior:secBehavior,
     deputyEdu:secDeputyEdu, deputyStudent:secDeputyStudent, deputySchool:secDeputySchool,
-    committees:secCommittees, commsHub:secCommsHub, reports:secReports, techVisits:secTechVisits, activityLead:secActivityLead,
+    committees:secCommittees, commsHub:secCommsHub, reports:secReports, techVisits:secTechVisits, activityLead:secActivityLead, healthAdvisor:secHealthAdvisor,
     users:secUsers, log:secLog, settings:secSettings
   };
   const fn = map[SECTION];
@@ -1072,6 +1074,140 @@ function activitiesPrintAll(){
       ${(a.images&&a.images.length)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${a.images.map(img=>`<img src="${img}" style="max-width:220px;border-radius:6px">`).join('')}</div>`:''}
     </div>`).join('') || '<p style="color:#64748b;font-size:13px">لا توجد أنشطة ضمن هذه الفترة</p>';
   printReport('تقرير شامل للأنشطة', meta, null, null, {html: extra});
+}
+
+// ===== الموجه الصحي =====
+const HEALTH_CATEGORIES = [
+  ['clinic','الحالات والعيادة المدرسية'],
+  ['programs','البرامج والتثقيف الصحي'],
+  ['environment','البيئة المدرسية والمقصف'],
+  ['initiatives','المبادرات والفحوصات الوطنية'],
+  ['stats','التقارير والإحصائيات']
+];
+const HEALTH_ACTION_TYPES = ['وقائي','علاجي طارئ','إداري وتوثيقي','توعوي'];
+const HEALTH_ACTION_STATUSES = ['لم يبدأ','قيد التنفيذ','مكتمل','مؤجل'];
+function healthStatusColor(s){ return s==='مكتمل'?C.teal:s==='قيد التنفيذ'?C.amber:s==='مؤجل'?C.red:C.muted; }
+function secHealthAdvisor(){
+  const tab = SUBTAB.healthAdvisor||'clinic';
+  const tabs = HEALTH_CATEGORIES;
+  if(tab==='stats') return subTabsHTML('healthAdvisor',tabs) + secHealthStats();
+  return subTabsHTML('healthAdvisor',tabs) + healthCategoryHTML(tab);
+}
+function healthCategoryHTML(category){
+  const editing = !!FORM.haEditId;
+  let html = card(editing?'تعديل إجراء':'إضافة إجراء', `<div class="form-grid">
+      ${fieldWrap('اسم الإجراء / المهمة', renderFieldControl({k:'haTitle'}))}
+      ${fieldWrap('نوع الإجراء', renderFieldControl({k:'haType',type:'select',options:HEALTH_ACTION_TYPES}))}
+      ${fieldWrap('المستهدفون', renderFieldControl({k:'haTarget',ph:'مثال: طلاب الصف الأول، الهيئة التعليمية، عمال المقصف'}))}
+      ${fieldWrap('حالة الإجراء', renderFieldControl({k:'haStatus',type:'select',options:HEALTH_ACTION_STATUSES}))}
+      ${fieldWrap('التاريخ', renderFieldControl({k:'haDate',type:'date'}))}
+    </div>
+    ${fieldWrap('الخطوات التنفيذية', renderFieldControl({k:'haSteps',type:'textarea',ph:'مثال: تجهيز غرفة العيادة، استدعاء طبيب المركز الصحي، توزيع الاستمارات'}))}
+    <label style="font-size:13px;font-weight:600;display:block;margin-top:10px">المرفقات والتوثيق (صور/تقارير/فواتير، حتى 4 ملفات، كل ملف ≤ 400KB): <input type="file" accept="image/*,.pdf" multiple onchange="healthAttachmentsSelect(this.files)" style="font-size:12px"></label>
+    ${(FORM.haAttachments&&FORM.haAttachments.length) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${FORM.haAttachments.map((att,i)=>`<div style="position:relative;display:flex;align-items:center;gap:6px;border:1px solid ${C.border};border-radius:8px;padding:6px 10px;font-size:12px">${att.type.startsWith('image/')?`<img src="${att.data}" style="height:36px;border-radius:4px">`:'📄'} ${esc(att.name)} <button type="button" onclick="healthAttachmentRemove(${i})" style="background:${C.red};color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer">×</button></div>`).join('')}</div>` : ''}
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;margin-top:12px">
+      <input type="checkbox" ${FORM.haNoor?'checked':''} onchange="setF('haNoor',this.checked);"> تم الرفع على نظام نور (التكامل الخارجي)
+    </label>
+    <div class="row-gap" style="margin-top:14px">${btn(editing?'حفظ التعديل':'حفظ الإجراء',`healthActionSubmit('${category}')`,'primary')}${btn('مسح',"clearF();rerenderSection();",'ghost')}</div>`);
+
+  const list = (DB.healthActions||[]).filter(a=>a.category===category).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(!list.length){ html += card('الإجراءات المسجلة', `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد إجراءات مسجلة في هذا القسم</div>`); return html; }
+  const rowsHtml = list.map(a=>`<tr>
+      <td style="font-weight:600">${esc(a.title)}</td><td>${esc(a.type)}</td><td>${esc(a.target||'—')}</td>
+      <td>${pill(a.status,healthStatusColor(a.status))}</td><td>${fmtDate(a.date)}</td><td>${a.noor?pill('نعم',C.teal):pill('لا',C.muted)}</td>
+      <td><div class="td-actions">${btn('طباعة',`healthActionPrint('${a.id}')`,'gold')}${btn('تعديل',`healthActionEdit('${a.id}')`,'ghost')}${btn('حذف',`healthActionDelete('${a.id}')`,'red')}</div></td>
+    </tr>`).join('');
+  html += card('الإجراءات المسجلة ('+list.length+')', `<div class="tbl-wrap"><table><thead><tr><th>اسم الإجراء</th><th>النوع</th><th>المستهدفون</th><th>الحالة</th><th>التاريخ</th><th>نور</th><th>إجراء</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+  return html;
+}
+function healthAttachmentsSelect(files){
+  if(!files||!files.length) return;
+  FORM.haAttachments = FORM.haAttachments||[];
+  const remaining = 4 - FORM.haAttachments.length;
+  const toRead = Array.from(files).slice(0, Math.max(0,remaining));
+  if(files.length>remaining) toast('يمكن إضافة حتى 4 مرفقات فقط','amber');
+  let pending = toRead.length;
+  if(!pending) return;
+  toRead.forEach(file=>{
+    const okType = file.type.startsWith('image/') || file.type==='application/pdf';
+    if(file.size>400*1024){ toast('حجم أحد الملفات يتجاوز 400KB','red'); pending--; if(!pending) rerenderSection(); return; }
+    if(!okType){ toast('يُسمح بالصور وملفات PDF فقط','red'); pending--; if(!pending) rerenderSection(); return; }
+    const rd = new FileReader();
+    rd.onload = e=>{ FORM.haAttachments.push({name:file.name, type:file.type, data:e.target.result}); pending--; if(!pending) rerenderSection(); };
+    rd.readAsDataURL(file);
+  });
+}
+function healthAttachmentRemove(i){ (FORM.haAttachments||[]).splice(i,1); rerenderSection(); }
+function healthActionEdit(id){
+  const a = (DB.healthActions||[]).find(x=>x.id===id); if(!a) return;
+  FORM = { haEditId:a.id, haTitle:a.title, haType:a.type, haTarget:a.target, haStatus:a.status, haDate:a.date, haSteps:a.steps, haAttachments:(a.attachments||[]).slice(), haNoor:a.noor };
+  rerenderSection();
+}
+function healthActionSubmit(category){
+  const f = FORM;
+  if(!f.haTitle){ toast('يرجى تعبئة اسم الإجراء','red'); return; }
+  const rec = { id: f.haEditId||uid(), category: f.haEditId ? (DB.healthActions.find(x=>x.id===f.haEditId)||{}).category||category : category,
+    title:f.haTitle, type:f.haType||HEALTH_ACTION_TYPES[0], target:f.haTarget||'', status:f.haStatus||HEALTH_ACTION_STATUSES[0],
+    date:f.haDate||todayStr(), steps:f.haSteps||'', attachments:(f.haAttachments||[]).slice(), noor:f.haNoor===true, createdBy:USER.username };
+  if(f.haEditId){
+    update(d=>{ const i=d.healthActions.findIndex(x=>x.id===f.haEditId); if(i>-1) d.healthActions[i]=rec; });
+    logAction('تعديل إجراء صحي: '+rec.title);
+    toast('تم التعديل');
+  } else {
+    update(d=>{ if(!d.healthActions) d.healthActions=[]; d.healthActions.unshift(rec); });
+    logAction('إضافة إجراء صحي: '+rec.title);
+    toast('تم حفظ الإجراء');
+  }
+  clearF(); rerenderSection();
+}
+function healthActionDelete(id){ update(d=>{ d.healthActions=(d.healthActions||[]).filter(x=>x.id!==id); }); toast('تم الحذف'); rerenderSection(); }
+function healthActionAttachmentsHTML(a){
+  if(!a.attachments||!a.attachments.length) return '';
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${a.attachments.map(att=> att.type.startsWith('image/')
+    ? `<img src="${att.data}" style="max-width:220px;border-radius:6px">`
+    : `<a href="${att.data}" target="_blank" style="display:inline-block;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px">📄 ${esc(att.name)}</a>`
+  ).join('')}</div>`;
+}
+function healthActionPrint(id){
+  const a = (DB.healthActions||[]).find(x=>x.id===id); if(!a) return;
+  const catLabel = (HEALTH_CATEGORIES.find(c=>c[0]===a.category)||[])[1] || a.category;
+  const meta = [['القسم',catLabel],['نوع الإجراء',a.type],['المستهدفون',a.target||'—'],['حالة الإجراء',a.status],['التاريخ',fmtDate(a.date)],['تم الرفع على نظام نور',a.noor?'نعم':'لا']];
+  const extra = `${a.steps?`<div class="formbox"><b>الخطوات التنفيذية:</b><br>${esc(a.steps)}</div>`:''}${healthActionAttachmentsHTML(a)}`;
+  printReport('تقرير إجراء: '+a.title, meta, null, null, {html: extra});
+}
+function secHealthStats(){
+  const from = FILTERS.haFrom||DB.settings.termStart||todayStr(); const to = FILTERS.haTo||todayStr();
+  const inRange = (DB.healthActions||[]).filter(a=>a.date>=from && a.date<=to);
+  let html = card('الفترة', `<div class="form-grid">
+      ${fieldWrap('من تاريخ', `<input type="date" class="ctl" value="${esc(from)}" onchange="setFilter('haFrom',this.value);rerenderSection();">`)}
+      ${fieldWrap('إلى تاريخ', `<input type="date" class="ctl" value="${esc(to)}" onchange="setFilter('haTo',this.value);rerenderSection();">`)}
+    </div>
+    <div class="row-gap">${btn('طباعة تقرير شامل لكل الإجراءات',"healthActionsPrintAll()",'gold')}</div>`);
+
+  html += `<div class="stats-grid">${HEALTH_CATEGORIES.filter(c=>c[0]!=='stats').map(c=>stat(c[1], inRange.filter(a=>a.category===c[0]).length, C.blue)).join('')}</div>`;
+  html += `<div class="stats-grid" style="margin-top:10px">${HEALTH_ACTION_STATUSES.map(s=>stat(s, inRange.filter(a=>a.status===s).length, healthStatusColor(s))).join('')}</div>`;
+
+  if(!inRange.length){ html += card('الإجراءات ضمن الفترة', `<div style="color:${C.muted};padding:20px;text-align:center">لا توجد إجراءات ضمن هذه الفترة</div>`); return html; }
+  const rowsHtml = inRange.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(a=>{
+    const catLabel = (HEALTH_CATEGORIES.find(c=>c[0]===a.category)||[])[1] || a.category;
+    return `<tr><td style="font-weight:600">${esc(a.title)}</td><td>${esc(catLabel)}</td><td>${esc(a.type)}</td><td>${pill(a.status,healthStatusColor(a.status))}</td><td>${fmtDate(a.date)}</td>
+      <td><button class="btn btn-gold btn-sm" onclick="healthActionPrint('${a.id}')">طباعة</button></td></tr>`;
+  }).join('');
+  html += card('الإجراءات ضمن الفترة ('+inRange.length+')', `<div class="tbl-wrap"><table><thead><tr><th>اسم الإجراء</th><th>القسم</th><th>النوع</th><th>الحالة</th><th>التاريخ</th><th>طباعة</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+  return html;
+}
+function healthActionsPrintAll(){
+  const from = FILTERS.haFrom||DB.settings.termStart||todayStr(); const to = FILTERS.haTo||todayStr();
+  const inRange = (DB.healthActions||[]).filter(a=>a.date>=from && a.date<=to);
+  const meta = [['الفترة', fmtDate(from)+' — '+fmtDate(to)],['عدد الإجراءات', inRange.length]];
+  const extra = HEALTH_CATEGORIES.filter(c=>c[0]!=='stats').map(([key,label])=>{
+    const items = inRange.filter(a=>a.category===key).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const body = items.length ? '<table><thead><tr><th>اسم الإجراء</th><th>النوع</th><th>المستهدفون</th><th>الحالة</th><th>التاريخ</th><th>نور</th></tr></thead><tbody>'+
+      items.map(a=>`<tr><td>${esc(a.title)}</td><td>${esc(a.type)}</td><td>${esc(a.target||'—')}</td><td>${esc(a.status)}</td><td>${fmtDate(a.date)}</td><td>${a.noor?'نعم':'لا'}</td></tr>`).join('')+'</tbody></table>'
+      : '<p style="color:#64748b;font-size:13px">لا توجد إجراءات</p>';
+    return `<h1 style="font-size:15px;margin-top:20px">${esc(label)} (${items.length})</h1>` + body;
+  }).join('');
+  printReport('تقرير شامل — الموجه الصحي', meta, null, null, {html: extra});
 }
 
 function genericSectionHTML(cfgKey){
