@@ -2461,66 +2461,8 @@ function secSettings(){
         ${btn('تصفير النظام (تأكيد مزدوج)','settingsReset()','red')}
       </div>`);
     html += card('حالة المزامنة السحابية', `<div style="font-size:13px;color:${C.muted};line-height:1.9">${supa? 'المزامنة السحابية مفعّلة — تتزامن البيانات فورياً بين جميع الأجهزة المتصلة بنفس النظام.' : 'المزامنة السحابية غير متاحة حالياً — يعمل النظام محلياً على هذا الجهاز فقط.'}</div>`);
-    html += card('إزالة البيانات التجريبية', `<p style="font-size:13px;color:${C.muted};margin:0 0 10px">يحذف مجموعة الأسماء التجريبية للمعلمين والموظفين والطلاب التي كانت أُضيفت سابقاً لتجربة النظام (مطابقة بالاسم والمسمى/الصف والفصل معاً لتفادي حذف أي بيانات حقيقية بالخطأ)، ويحذف أي حسابات دخول مرتبطة بها.</p>
-      ${btn('حذف البيانات التجريبية','removeDemoData()','red')}`);
   }
   return html;
-}
-function demoDataDefs(){
-  const firstNames = ['عبدالله','محمد','عبدالعزيز','فيصل','سلطان','تركي','بندر','سعود','خالد','ناصر','فهد','سالم','ماجد','يوسف','عمر','إبراهيم','عبدالرحمن','وليد','طلال','حمد','بدر','راكان','مشعل','نواف','عبدالإله','زياد','أحمد','عبدالمجيد','رائد','سامي','تميم','عدنان','فارس','مازن','هشام'];
-  const familyNames = ['القحطاني','الغامدي','الزهراني','العتيبي','الحربي','المطيري','الشهري','العنزي','الدوسري','السبيعي','البقمي','الرشيدي','الشمري','الجهني','السلمي'];
-  const teacherDefs = [
-    ['أحمد سالم القحطاني','معلم لغتي','قسم اللغة العربية'],
-    ['خالد عبدالله الغامدي','معلم رياضيات','قسم الرياضيات'],
-    ['فهد ناصر الزهراني','معلم علوم','قسم العلوم'],
-    ['عبدالرحمن محمد العتيبي','معلم تربية إسلامية وقرآن كريم','قسم التربية الإسلامية'],
-    ['سلطان عمر الحربي','معلم لغة إنجليزية','قسم اللغة الإنجليزية'],
-    ['بندر سعيد المطيري','معلم تربية بدنية','قسم النشاط'],
-    ['ماجد فيصل الشهري','معلم حاسب آلي','قسم الحاسب'],
-    ['يوسف تركي العنزي','معلم تربية فنية','قسم النشاط'],
-    ['طلال حمد الدوسري','معلم لغتي','قسم اللغة العربية'],
-    ['وليد راكان السبيعي','معلم رياضيات','قسم الرياضيات']
-  ];
-  const staffDefs = [
-    ['سعود عبدالعزيز البقمي','وكيل الشؤون التعليمية','الإدارة المدرسية'],
-    ['ناصر خالد الرشيدي','وكيل شؤون الطلاب','الإدارة المدرسية'],
-    ['عبدالمجيد سالم الشمري','وكيل الشؤون المدرسية','الإدارة المدرسية'],
-    ['زياد فهد الجهني','موجه طلابي','الإرشاد الطلابي'],
-    ['رائد محمد السلمي','سكرتير المدرسة','الشؤون الإدارية'],
-    ['مشعل عبدالله القحطاني','حارس أمن','الأمن والسلامة']
-  ];
-  const employeeDefs = [...teacherDefs, ...staffDefs].map(([name,title,dept])=>({name,title,dept}));
-  const sections = ['أ','ب','ج'];
-  const studentDefs = [];
-  let fi=0, mi=1, li=0;
-  GRADES.forEach(grade=>{
-    sections.forEach(section=>{
-      for(let i=0;i<4;i++){
-        const name = firstNames[fi%firstNames.length]+' '+firstNames[mi%firstNames.length]+' '+familyNames[li%familyNames.length];
-        fi+=3; mi+=5; li+=1;
-        studentDefs.push({name,grade,section});
-      }
-    });
-  });
-  return {employeeDefs, studentDefs};
-}
-function removeDemoData(){
-  const {employeeDefs, studentDefs} = demoDataDefs();
-  const empMatch = (e)=> employeeDefs.some(x=> x.name===e.name && x.title===e.title && x.dept===e.dept);
-  const stuMatch = (s)=> studentDefs.some(x=> x.name===s.name && x.grade===s.grade && x.section===s.section);
-  const empToRemove = DB.employees.filter(empMatch);
-  const stuToRemove = DB.students.filter(stuMatch);
-  if(!empToRemove.length && !stuToRemove.length){ toast('لا توجد بيانات تجريبية مطابقة للحذف'); return; }
-  if(!confirm('سيتم حذف '+empToRemove.length+' موظف/معلم و'+stuToRemove.length+' طالب من البيانات التجريبية المطابقة تماماً، مع أي حسابات دخول مرتبطة بهم. لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟')) return;
-  const empIds = new Set(empToRemove.map(e=>e.id));
-  update(d=>{
-    d.employees = d.employees.filter(e=>!empIds.has(e.id));
-    d.students = d.students.filter(s=>!stuMatch(s));
-    d.users = d.users.filter(u=>!u.employeeId || !empIds.has(u.employeeId));
-  });
-  logAction('حذف بيانات تجريبية: '+empToRemove.length+' موظف، '+stuToRemove.length+' طالب');
-  toast('تم حذف '+empToRemove.length+' موظف و'+stuToRemove.length+' طالب تجريبي');
-  rerenderSection();
 }
 function settingsSave(){
   const f = FORM; const st = DB.settings;
