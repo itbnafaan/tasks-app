@@ -2461,16 +2461,14 @@ function secSettings(){
         ${btn('تصفير النظام (تأكيد مزدوج)','settingsReset()','red')}
       </div>`);
     html += card('حالة المزامنة السحابية', `<div style="font-size:13px;color:${C.muted};line-height:1.9">${supa? 'المزامنة السحابية مفعّلة — تتزامن البيانات فورياً بين جميع الأجهزة المتصلة بنفس النظام.' : 'المزامنة السحابية غير متاحة حالياً — يعمل النظام محلياً على هذا الجهاز فقط.'}</div>`);
-    html += card('بيانات تجريبية للاختبار', `<p style="font-size:13px;color:${C.muted};margin:0 0 10px">يضيف مجموعة أسماء تجريبية لمعلمين وموظفين إداريين وطلاب موزّعين على الصفوف والفصول، لتجربة أقسام النظام دون التأثير على أي بيانات موجودة.</p>
-      ${btn('توليد بيانات تجريبية','seedDemoData()','teal')}`);
+    html += card('إزالة البيانات التجريبية', `<p style="font-size:13px;color:${C.muted};margin:0 0 10px">يحذف مجموعة الأسماء التجريبية للمعلمين والموظفين والطلاب التي كانت أُضيفت سابقاً لتجربة النظام (مطابقة بالاسم والمسمى/الصف والفصل معاً لتفادي حذف أي بيانات حقيقية بالخطأ)، ويحذف أي حسابات دخول مرتبطة بها.</p>
+      ${btn('حذف البيانات التجريبية','removeDemoData()','red')}`);
   }
   return html;
 }
-function seedDemoData(){
-  if(!confirm('سيتم إضافة أسماء تجريبية لمعلمين وموظفين وطلاب للتجربة، دون حذف أي بيانات موجودة. هل تريد المتابعة؟')) return;
+function demoDataDefs(){
   const firstNames = ['عبدالله','محمد','عبدالعزيز','فيصل','سلطان','تركي','بندر','سعود','خالد','ناصر','فهد','سالم','ماجد','يوسف','عمر','إبراهيم','عبدالرحمن','وليد','طلال','حمد','بدر','راكان','مشعل','نواف','عبدالإله','زياد','أحمد','عبدالمجيد','رائد','سامي','تميم','عدنان','فارس','مازن','هشام'];
   const familyNames = ['القحطاني','الغامدي','الزهراني','العتيبي','الحربي','المطيري','الشهري','العنزي','الدوسري','السبيعي','البقمي','الرشيدي','الشمري','الجهني','السلمي'];
-  const rndPhone = ()=> '05'+String(Math.floor(10000000+Math.random()*89999999));
   const teacherDefs = [
     ['أحمد سالم القحطاني','معلم لغتي','قسم اللغة العربية'],
     ['خالد عبدالله الغامدي','معلم رياضيات','قسم الرياضيات'],
@@ -2491,25 +2489,37 @@ function seedDemoData(){
     ['رائد محمد السلمي','سكرتير المدرسة','الشؤون الإدارية'],
     ['مشعل عبدالله القحطاني','حارس أمن','الأمن والسلامة']
   ];
-  const newEmployees = [
-    ...teacherDefs.map(([name,title,dept])=>({id:uid(),name,title,dept,phone:rndPhone(),periods:{sun:5,mon:5,tue:4,wed:5,thu:4}})),
-    ...staffDefs.map(([name,title,dept])=>({id:uid(),name,title,dept,phone:rndPhone(),periods:{sun:0,mon:0,tue:0,wed:0,thu:0}}))
-  ];
+  const employeeDefs = [...teacherDefs, ...staffDefs].map(([name,title,dept])=>({name,title,dept}));
   const sections = ['أ','ب','ج'];
-  const newStudents = [];
+  const studentDefs = [];
   let fi=0, mi=1, li=0;
   GRADES.forEach(grade=>{
     sections.forEach(section=>{
       for(let i=0;i<4;i++){
         const name = firstNames[fi%firstNames.length]+' '+firstNames[mi%firstNames.length]+' '+familyNames[li%familyNames.length];
         fi+=3; mi+=5; li+=1;
-        newStudents.push({id:uid(),name,grade,section,guardianPhone:rndPhone()});
+        studentDefs.push({name,grade,section});
       }
     });
   });
-  update(d=>{ d.employees=[...newEmployees,...d.employees]; d.students=[...newStudents,...d.students]; });
-  logAction('توليد بيانات تجريبية: '+newEmployees.length+' موظف/معلم، '+newStudents.length+' طالب');
-  toast('تمت إضافة '+newEmployees.length+' موظف و'+newStudents.length+' طالب تجريبي');
+  return {employeeDefs, studentDefs};
+}
+function removeDemoData(){
+  const {employeeDefs, studentDefs} = demoDataDefs();
+  const empMatch = (e)=> employeeDefs.some(x=> x.name===e.name && x.title===e.title && x.dept===e.dept);
+  const stuMatch = (s)=> studentDefs.some(x=> x.name===s.name && x.grade===s.grade && x.section===s.section);
+  const empToRemove = DB.employees.filter(empMatch);
+  const stuToRemove = DB.students.filter(stuMatch);
+  if(!empToRemove.length && !stuToRemove.length){ toast('لا توجد بيانات تجريبية مطابقة للحذف'); return; }
+  if(!confirm('سيتم حذف '+empToRemove.length+' موظف/معلم و'+stuToRemove.length+' طالب من البيانات التجريبية المطابقة تماماً، مع أي حسابات دخول مرتبطة بهم. لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟')) return;
+  const empIds = new Set(empToRemove.map(e=>e.id));
+  update(d=>{
+    d.employees = d.employees.filter(e=>!empIds.has(e.id));
+    d.students = d.students.filter(s=>!stuMatch(s));
+    d.users = d.users.filter(u=>!u.employeeId || !empIds.has(u.employeeId));
+  });
+  logAction('حذف بيانات تجريبية: '+empToRemove.length+' موظف، '+stuToRemove.length+' طالب');
+  toast('تم حذف '+empToRemove.length+' موظف و'+stuToRemove.length+' طالب تجريبي');
   rerenderSection();
 }
 function settingsSave(){
